@@ -81,6 +81,35 @@ a:focus-visible, button:focus-visible { outline: 3px solid #91bdb9; outline-offs
   .profile-fields { grid-template-columns: 1fr; gap: 6px; }
 }
 body { margin: 0; }
+.current-library-bar { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 16px 32px; background: #eaf2f1; border-bottom: 1px solid #dbe8e6; }
+.current-library-label { min-width: 0; font-size: 14px; overflow-wrap: anywhere; }
+.current-library-label small { margin-left: 12px; color: #677585; }
+.current-library-bar .el-select { width: 240px; flex-shrink: 0; }
+.knowledge-base-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.knowledge-base-card .el-card__body { height: 100%; display: flex; flex-direction: column; }
+.library-card-heading { display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.library-card-heading h3 { flex: 1; font-size: 19px; overflow-wrap: anywhere; line-height: 1.6; }
+.library-description { white-space: pre-wrap; overflow-wrap: anywhere; color: #516273; line-height: 1.9; }
+.knowledge-base-card .library-description { flex: 1; max-height: 130px; overflow: auto; }
+.library-counts { color: #237b75; font-size: 14px; }
+.library-meta, .library-stage-note { color: #677585; font-size: 12px; line-height: 1.9; }
+.library-card-actions, .library-header-actions, .form-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+.library-card-actions .el-button, .library-header-actions .el-button, .form-actions .el-button { margin-left: 0; }
+.library-stage-note { margin-top: 24px; }
+.knowledge-base-form { display: grid; gap: 12px; margin-top: 20px; }
+.knowledge-base-form small { color: #677585; }
+.form-actions { justify-content: flex-end; margin-top: 18px; }
+.knowledge-base-detail > .subtle-link { margin: 0 0 16px; }
+.knowledge-base-detail h2 { font-size: 26px; overflow-wrap: anywhere; }
+.el-dialog, .el-message-box { max-width: calc(100vw - 32px); }
+@media (max-width: 1100px) {
+  .knowledge-base-grid { grid-template-columns: 1fr; }
+  .current-library-bar { padding: 16px 24px; }
+}
+@media (max-width: 760px) {
+  .current-library-bar { align-items: flex-start; flex-direction: column; padding: 16px; }
+  .current-library-bar .el-select { max-width: 100%; }
+}
 * { box-sizing: border-box; }
 .startup-page { max-width: 1024px; margin: 0 auto; padding: 48px 28px; }
 .page-header { display: flex; justify-content: space-between; gap: 20px; align-items: flex-start; margin-bottom: 28px; }

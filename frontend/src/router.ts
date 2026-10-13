@@ -6,6 +6,8 @@ import ConnectionView from './views/ConnectionView.vue'
 import HomeView from './views/HomeView.vue'
 import NotFoundView from './views/NotFoundView.vue'
 import MainLayout from './layouts/MainLayout.vue'
+import KnowledgeBasesView from './views/KnowledgeBasesView.vue'
+import KnowledgeBaseView from './views/KnowledgeBaseView.vue'
 import { auth, expireAuthentication, resolveAuthentication } from './auth/state'
 import { safeDestination } from './auth/redirect'
 import { onUnauthorized } from './api/client'
@@ -21,6 +23,8 @@ export const router = createRouter({
     { path: '/app', component: MainLayout, meta: { requiresAuth: true }, children: [
       { path: '', name: 'home', component: HomeView, meta: { title: '系统首页' } },
       { path: 'health', name: 'health', component: StartupView, meta: { title: '服务检查' } },
+      { path: 'knowledge-bases', name: 'knowledge-bases', component: KnowledgeBasesView, meta: { title: '我的知识库' } },
+      { path: 'knowledge-bases/:id', name: 'knowledge-base', component: KnowledgeBaseView, meta: { title: '知识库' } },
       { path: ':pathMatch(.*)*', component: NotFoundView },
     ] },
     { path: '/:pathMatch(.*)*', component: NotFoundView },

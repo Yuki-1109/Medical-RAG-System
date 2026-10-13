@@ -2,9 +2,9 @@
 
 医疗文献与医学图片知识库 RAG 系统，本科毕业设计，面向 Windows 本地部署。
 
-**当前交付：A3 首次使用、登录与中文页面框架。** 浏览器会根据后端真实状态进入首次初始化、登录或已登录首页；支持刷新恢复、退出、失效提示和路由守卫。已有管理员直接登录，服务检查继续可用。知识库、资料上传和问答仍待开发，不显示虚构业务数据。本地运行不需要任何模型 API Key。
+**当前交付：A4 知识库 CRUD 与后端隔离。** 已提供真实知识库列表、新建、改名/简介、进入与切换、二次确认删除，以及后端账号归属检查；数据保存于 PostgreSQL。A1～A3 服务检查、初始化、Session/CSRF 登录继续保留。资料上传、原件存储和 RAG 尚未开发，不显示虚构统计。本地运行不需要模型 API Key。
 
-A2 的接口格式和 Session/CSRF 说明见 [管理员认证操作](docs/A2-管理员认证操作.md)。用户已确认 A1/A2 在 Windows 的核心验收；A3 新界面需单独验收，步骤见 [A3 前端运行与验收](docs/A3-前端运行与验收.md)，实际测试记录见 [A3 验证记录](docs/A3-验证记录.md)。已有 mianmian 账号无需重建，保留原数据库与数据卷。
+A2 的接口格式和 Session/CSRF 说明见 [管理员认证操作](docs/A2-管理员认证操作.md)。用户已确认 A1/A2/A3 在 Windows 的核心验收。A4 升级、完整启动与实机验收见 [A4 知识库运行与验收](docs/A4-知识库运行与验收.md)，实际测试见 [A4 验证记录](docs/A4-验证记录.md)。已有 mianmian 账号无需重建，保留原数据库与数据卷。
 
 需求依据：[完整需求规格说明 v1.0](医疗%20RAG%20系统｜完整需求规格说明%20v1.0.md)、[分阶段开发计划](docs/分阶段开发计划-v1.0.md)。后续按小任务开发，每次验收后等待用户确认。
 
@@ -36,9 +36,11 @@ Java 应为 21，Node 推荐 24；Docker 输出须包含 Client 和 Server。不
 ```powershell
 git clone https://github.com/Yuki-1109/Medical-RAG-System.git
 cd Medical-RAG-System
-# A3 分支推送后，在合并 main 前使用：
-git switch codex/a3-authentication-ui
+# 合并 main 前使用已推送的 A4 分支：
+git switch codex/a4-knowledge-base-crud
 ```
+
+已有数据库的 A4 升级只需启动原容器 `docker start medical-rag-postgres`，然后启动后端，保留原 .env。以下初始化命令用于第一次安装新环境；已有管理员不重新创建。
 
 在仓库根目录运行：
 
@@ -53,7 +55,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Initialize-Databas
 - 使用命名数据卷 `medical-rag-pgdata` 保存数据库，监听 `127.0.0.1:5433`，避免与常见 5432 冲突。
 - 已有容器时启动现有容器，保留数据。不要删除数据卷；修改 `.env` 密码不会修改已有数据库密码。
 
-看到“PostgreSQL 已就绪”后继续。数据库扩展由后端首次启动时的 Flyway V1 迁移启用；A2 的 V2 创建 users 表及单管理员约束，**不会预设账号或密码**。已有 A1 数据库可直接升级，不删除数据卷、不修改 V1、不重新初始化数据库。
+看到“PostgreSQL 已就绪”后继续。数据库扩展由后端首次启动时的 Flyway V1 迁移启用；A2 的 V2 创建 users 表及单管理员约束，**不会预设账号或密码**。A4 V3 只新增 knowledge_bases 表、归属外键和索引；已有 V2 管理员、密码哈希和用户表保持不变，不删除数据卷、不修改 V1/V2、不重新初始化数据库。
 
 `.env` 只留在本机，不截图公开、不提交 Git。配置示例中的 DB_PASSWORD 为空是有意设计，应用没有默认密码。初始化脚本适合 A1 开发，数据库角色拥有创建扩展所需权限；正式发布时再收紧迁移/运行账号权限。
 
@@ -71,7 +73,7 @@ Flyway 对已安装的扩展执行 `CREATE EXTENSION IF NOT EXISTS vector`。缺
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Start-Backend.ps1
 ```
 
-第一次会下载 Maven 3.9.11 与依赖，耗时取决于网络。成功时看到 `Started MedicalRagApplication` 与端口 8080 的日志；Flyway 按顺序执行尚未执行的 V1/V2，再次启动显示 schema 已是最新版本。只有通过 A2 setup API 才会创建管理员，健康接口仍公开可用。
+第一次会下载 Maven 3.9.11 与依赖，耗时取决于网络。成功时看到 `Started MedicalRagApplication` 与端口 8080 的日志；Flyway 按顺序执行尚未执行的 V1/V2/V3；已有 V2 只增量执行 V3，再次启动显示 schema 已是最新版本。只有通过 A2 setup API 才会创建管理员，健康接口仍公开可用。
 
 直接访问 [后端健康接口](http://127.0.0.1:8080/api/health) 可查看 JSON。后端正常时状态为 `UP`；响应不包含密码、数据库连接字符串或用户名。8080 当前只提供 API，页面在前端 5173。
 
@@ -87,11 +89,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Start-Frontend.ps1
 
 **[http://127.0.0.1:5173](http://127.0.0.1:5173)**
 
-已有管理员时进入登录页，输入本机已有账号及密码；你的 mianmian 账号保持原样。登录后进入中文首页，显示真实账号、创建时间和可用的服务检查入口。未初始化的全新安装才显示创建管理员页，创建后仍需登录。
+已有管理员时进入登录页，输入本机已有账号及密码；你的 mianmian 账号保持原样。登录后进入中文首页，显示真实账号、创建时间、知识库管理和服务检查入口。未初始化的全新安装才显示创建管理员页，创建后仍需登录。
 
 未登录直接输入 `/app` 或 `/app/health` 会转到登录页；刷新会重新询问后端当前账号。登录成功重新获取 CSRF，退出及会话失效会清理前端登录状态；不把密码、Cookie 或 CSRF 存到浏览器本地存储。
 
-A1 的启动检查页保留在 [http://127.0.0.1:5173/health](http://127.0.0.1:5173/health)，登录后也可通过左侧“服务检查”进入。后端、PostgreSQL、pgvector、Flyway 四项应显示“正常”。尚未开发的导航均标注待开发且不可点击，不提供假业务页面。
+A1 的启动检查页保留在 [http://127.0.0.1:5173/health](http://127.0.0.1:5173/health)，登录后也可通过左侧“服务检查”进入。后端、PostgreSQL、pgvector、Flyway 四项应显示“正常”。“我的知识库”已可点击；进入后支持卡片列表、新建、编辑、确认删除和当前库切换。知识库名称 1～100 字符，简介最多 2000 字符，响应 ID 为字符串。当前库由真实详情路由建立，刷新重新核验，删除/退出清理。文献、图片和问答等导航继续标注待开发。
 
 通信流程：浏览器 `/api/health` → Vite 本机代理 → Spring Boot → 实际 PostgreSQL 查询。数据库检查失败返回 HTTP 503；前端会展示真实组件状态。后端未启动时提示连接失败。
 
@@ -140,7 +142,7 @@ cd ..\backend
 .\mvnw.cmd verify -Pintegration-test
 ```
 
-普通后端 verify 执行单元测试并打包；**不代表数据库集成测试已执行**。带 `-Pintegration-test` 才会运行真实数据库健康、迁移幂等、扩展缺失、迁移记录缺失和 A2 认证测试；其中包含 8 路并发初始化、真实 HTTP Session/CSRF、退出失效和 jar 进程重启后登录。测试使用独立临时数据库，不创建/删除用户本机管理员。没有 Docker 时该命令应失败，不把跳过当成功。
+普通后端 verify 执行单元测试并打包；**不代表数据库集成测试已执行**。带 `-Pintegration-test` 才会运行真实数据库健康、迁移幂等、扩展缺失、迁移记录缺失、A2 认证、A4 CRUD/归属/CSRF、V2→V3 升级和知识库重启持久化测试；其中包含 8 路并发初始化、真实 HTTP Session/CSRF、退出失效和 jar 进程重启后登录。测试使用独立临时数据库，不创建/删除用户本机管理员。没有 Docker 时该命令应失败，不把跳过当成功。
 
 浏览器测试使用自动隔离的真实数据库与后端，不使用用户数据库。先执行上述 Maven verify 生成 jar，并确保本机 Docker 已就绪：
 
@@ -152,7 +154,7 @@ npm.cmd run test:e2e
 
 测试启动器分配独立 PostgreSQL 容器、后端及 Vite 端口；只在该数据库首次创建测试管理员，结束后只清理本次临时容器及匿名卷。现有 medical-rag-postgres / medical-rag-pgdata 保持不变，不要绕过启动器直接执行认证用例。
 
-覆盖真实创建→登录→刷新→退出→再次登录、已有账号、私有路由、错误密码、服务断开、失效、HttpOnly、响应字段及笔记本布局。独立测试后端临时将闲置超时设为 1 分钟，实际等待 65 秒验证过期；生产仍为 A2 的 30 分钟。认证网络 trace 禁用，日志与测试截图不提交。测试数据仅属于隔离用例，不用于生产界面。
+覆盖真实创建→登录→刷新→退出→再次登录、已有账号、私有路由、错误密码、服务断开、失效、HttpOnly，以及 K1/K2 创建/编辑/切换/刷新/重启、删除取消与确认、失效当前库和笔记本布局。重启只操纵测试启动器自建子进程，产品后端没有重启接口。独立测试后端临时将闲置超时设为 1 分钟，实际等待 65 秒验证过期；生产仍为 A2 的 30 分钟。认证网络 trace 禁用，日志与测试截图不提交。测试数据仅属于隔离用例，不用于生产界面。
 
 Linux 可在 backend 执行 `./mvnw verify` / `./mvnw spring-boot:run`，前端使用 npm 相同命令；后端与 Vite 都读取仓库根目录 `.env`。PowerShell 启动脚本面向 Windows，不代表已在 Windows 实机执行。
 
@@ -162,11 +164,11 @@ Linux 可在 backend 执行 `./mvnw verify` / `./mvnw spring-boot:run`，前端�
 - Spring AI 官方说明 `1.1.x` 对应 Boot `3.5.x`；A1 不加载模型依赖，不需要 Key。后续 B 再选择同系列稳定补丁。
 - Maven 的数据库/Flyway/测试库版本由 Spring Boot BOM 统一管理，前端精确版本及 package-lock 固定。依赖及许可证说明见 [A1 依赖说明](docs/A1-依赖说明.md)。项目开源许可证将在公开发布前确认，本次不擅自替用户选择代码授权。
 
-代码提交保存在当前仓库独立 A3 分支，基于已推送的 A2 提交；原 A1/A2 分支保留。A3 获准同步时可执行（不发布 Release）：
+代码保存在独立 A4 分支，基于已推送的 A3 提交 14c1047；原 A1/A2/A3 分支保留。本次用户已授权 A4 提交及推送，仅同步开发分支：
 
 ```powershell
 git status
-git push -u origin codex/a3-authentication-ui
+git push -u origin codex/a4-knowledge-base-crud
 ```
 
-分支推送后可在 GitHub 发起 Pull Request，保留基于 A2 的依赖关系，确认审查后再合并；另一台电脑 `git fetch origin` 后切换该分支即可。不要提交 `.env`、上传原件、数据库卷、私有日志或备份。本次完成 A3 后停止，知识库 CRUD 需用户确认 A4 后开发。
+分支推送后可在 GitHub 发起 Pull Request，保留基于 A3 的依赖关系，确认审查后再合并；另一台电脑 `git fetch origin` 后切换该分支即可。不要提交 `.env`、上传原件、数据库卷、私有日志或备份。本次完成 A4 后停止，不自动合并 main 或发布 Release。A5 本机原件存储基础需用户明确确认后开发。

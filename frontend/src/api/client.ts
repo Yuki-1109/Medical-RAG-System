@@ -68,10 +68,10 @@ export async function getCsrf(force = false): Promise<string> {
   return csrfPending
 }
 
-export async function mutate<T>(path: string, body?: string, contentType = 'application/json', notifyUnauthorized = true): Promise<T> {
+export async function mutate<T>(path: string, body?: string, contentType = 'application/json', notifyUnauthorized = true, method: 'POST' | 'PATCH' | 'DELETE' = 'POST'): Promise<T> {
   async function send() {
     return request<T>(path, {
-      method: 'POST', body, notifyUnauthorized,
+      method, body, notifyUnauthorized,
       headers: { 'Content-Type': contentType, 'X-CSRF-TOKEN': await getCsrf() },
     })
   }

@@ -74,7 +74,7 @@ onMounted(check)
     </el-card>
 
     <el-alert
-      title="此页只展示本机服务状态。管理员登录已可使用；知识库、资料上传及 RAG 问答仍待开发。"
+      title="此页只展示本机服务状态。管理员登录和知识库管理已可使用；资料上传及 RAG 问答仍待开发。"
       type="info"
       :closable="false"
     />

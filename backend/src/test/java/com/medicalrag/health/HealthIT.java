@@ -43,7 +43,7 @@ class HealthIT {
         assertThat(health.status()).isEqualTo("UP");
         assertThat(health.database().status()).isEqualTo("UP");
         assertThat(health.pgvector().version()).isEqualTo("0.8.2");
-        assertThat(health.migrations().version()).isEqualTo("2");
+        assertThat(health.migrations().version()).isEqualTo("3");
     }
 
     @Test
@@ -59,6 +59,7 @@ class HealthIT {
         assertThat(flyway.migrate().migrationsExecuted).isZero();
         assertThat(jdbc.queryForObject("SELECT count(*) FROM flyway_schema_history WHERE version = '1' AND success", Integer.class)).isEqualTo(1);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM flyway_schema_history WHERE version = '2' AND success", Integer.class)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM flyway_schema_history WHERE version = '3' AND success", Integer.class)).isEqualTo(1);
     }
 
     @Test

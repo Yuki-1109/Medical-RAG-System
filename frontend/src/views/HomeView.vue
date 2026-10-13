@@ -21,6 +21,7 @@ async function check() {
       <el-card shadow="never"><h3>当前管理员</h3><dl class="profile-fields"><dt>用户名</dt><dd>{{ auth.user?.username }}</dd><dt>账号创建时间</dt><dd>{{ auth.user ? new Date(auth.user.createdAt).toLocaleString('zh-CN') : '' }}</dd><dt>登录状态</dt><dd><el-tag type="success">已登录</el-tag></dd></dl><el-button :loading="busy" @click="check">核验登录状态</el-button></el-card>
       <el-card shadow="never"><h3>本机服务检查</h3><p class="card-description">查看后端、数据库、pgvector 与数据库迁移的实际运行状态。</p><router-link to="/app/health" class="primary-link">查看服务状态 →</router-link></el-card>
     </div>
-    <el-alert title="当前已提供管理员登录与服务检查。知识库、文献、图片和问答模块仍待开发，尚不能使用。" type="info" :closable="false" />
+    <router-link to="/app/knowledge-bases" class="primary-link">进入我的知识库 →</router-link>
+    <el-alert title="当前已提供管理员登录、知识库管理与服务检查。文献、图片和问答模块仍待开发，尚不能使用。" type="info" :closable="false" />
   </div>
 </template>
