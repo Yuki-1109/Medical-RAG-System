@@ -22,6 +22,6 @@ async function check() {
       <el-card shadow="never"><h3>本机服务检查</h3><p class="card-description">查看后端、数据库、pgvector 与数据库迁移的实际运行状态。</p><router-link to="/app/health" class="primary-link">查看服务状态 →</router-link></el-card>
     </div>
     <router-link to="/app/knowledge-bases" class="primary-link">进入我的知识库 →</router-link>
-    <el-alert title="当前已提供管理员登录、知识库管理与服务检查。文献、图片和问答模块仍待开发，尚不能使用。" type="info" :closable="false" />
+    <el-alert title="当前已提供登录、知识库管理、PDF 上传/原文预览/下载/删除与服务检查。文字处理、索引、图片和问答仍待开发。" type="info" :closable="false" />
   </div>
 </template>

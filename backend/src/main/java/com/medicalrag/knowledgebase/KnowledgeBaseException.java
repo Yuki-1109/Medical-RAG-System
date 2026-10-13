@@ -3,6 +3,8 @@ package com.medicalrag.knowledgebase;
 public class KnowledgeBaseException extends RuntimeException {
     final int status;
     final String code;
+    public int status() { return status; }
+    public String code() { return code; }
 
     public KnowledgeBaseException(int status, String code, String message) {
         super(message);

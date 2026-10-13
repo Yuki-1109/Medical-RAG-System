@@ -48,7 +48,7 @@ class HealthIT {
         assertThat(health.status()).isEqualTo("UP");
         assertThat(health.database().status()).isEqualTo("UP");
         assertThat(health.pgvector().version()).isEqualTo("0.8.2");
-        assertThat(health.migrations().version()).isEqualTo("3");
+        assertThat(health.migrations().version()).isEqualTo("4");
     }
 
     @Test

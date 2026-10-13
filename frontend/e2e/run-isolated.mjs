@@ -37,6 +37,8 @@ async function stop(child) {
   child.kill()
   for (let attempt = 0; attempt < 40 && child.exitCode === null && child.signalCode === null; attempt++) await sleep(100)
   if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL')
+  for (let attempt = 0; attempt < 50 && child.exitCode === null && child.signalCode === null; attempt++) await sleep(100)
+  if (child.exitCode === null && child.signalCode === null) throw new Error('测试子进程未退出；拒绝提前清理其文件目录。')
 }
 function interrupt() { interrupted = true; playwright?.kill() }
 process.on('SIGINT', interrupt)

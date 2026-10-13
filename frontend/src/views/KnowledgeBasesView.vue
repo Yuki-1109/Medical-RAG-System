@@ -39,7 +39,7 @@ async function remove(base: KnowledgeBase) {
   if (deleting.value) return
   deleting.value = base.id; error.value = ''
   try { if (await confirmDeleteKnowledgeBase(base)) await load() }
-  catch (cause) { error.value = cause instanceof Error ? cause.message : '删除未完成，请重新检查。' }
+  catch (cause) { const message = cause instanceof Error ? cause.message : '删除未完成，请重新检查。'; await load(); error.value = message }
   finally { deleting.value = '' }
 }
 onMounted(load)
@@ -56,11 +56,12 @@ onMounted(load)
         <div class="library-card-heading"><h3>{{ base.name }}</h3><el-tag v-if="base.demo">演示库</el-tag><el-tag v-if="knowledgeBaseContext.current?.id === base.id" type="success">当前库</el-tag></div>
         <p class="library-description">{{ base.description || '暂无简介' }}</p>
         <p class="library-counts">文献 {{ base.documentCount }} · 图片 {{ base.imageCount }}</p>
+        <p v-if="base.deletionPending || base.pendingCleanupCount" class="document-warning">{{ base.deletionPending ? '知识库删除未完成，请重试删除。' : `另有 ${base.pendingCleanupCount} 条待清理记录，可进入文献管理清理。` }}</p>
         <p class="library-meta">ID：{{ base.id }}<br />更新于 {{ new Date(base.updatedAt).toLocaleString('zh-CN') }}</p>
         <div class="library-card-actions"><el-button type="primary" @click="router.push(`/app/knowledge-bases/${base.id}`)">进入知识库</el-button><el-button @click="openForm(base)">编辑</el-button><el-button type="danger" plain :loading="deleting === base.id" :disabled="!!deleting && deleting !== base.id" @click="remove(base)">删除</el-button></div>
       </el-card>
     </div>
-    <p class="library-stage-note">当前支持知识库管理；文献与图片上传尚未开放，知识库中的资料数量为真实空库数量。</p>
+    <p class="library-stage-note">文献数量来自当前知识库的有效记录；已支持 PDF 原件管理。图片、文字处理与问答仍待开发。</p>
     <KnowledgeBaseForm :open="formOpen" :editing="editing" :busy="saving" :error="formError" @close="formOpen = false" @save="save" />
   </main>
 </template>

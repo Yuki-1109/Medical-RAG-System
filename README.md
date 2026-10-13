@@ -2,9 +2,9 @@
 
 医疗文献与医学图片知识库 RAG 系统，本科毕业设计，面向 Windows 本地部署。
 
-**当前交付：A5 本地原件存储与安全读取基础。** 已提供内部 Java 存储服务：PDF/JPEG/PNG 流式持久化、大小与基本格式校验、SHA-256、原子提交、路径防护、受控读取/删除和失败补偿。网页继续使用 A4 真实知识库管理；A1～A3 服务检查、初始化、Session/CSRF 登录保留。上传/下载业务接口、资料表、预览和 RAG 尚未开发，不显示虚构统计。本地运行不需要模型 API Key。
+**当前交付：A6 PDF 上传、列表、预览与删除。** 可在真实知识库中上传 PDF，显示实际文件名、大小、页数、时间和“待处理”，使用 PDF.js 翻页/跳页、下载完整原件、确认删除文献或非空知识库。真实 PostgreSQL 文献计数与 A5 私有存储、SHA-256、失败补偿和归属保护已接入；A1～A5 功能保留。文字提取、Chunk、索引、医学图片和 RAG 尚未开发，本地运行不需要模型 API Key。
 
-A2 的接口格式和 Session/CSRF 说明见 [管理员认证操作](docs/A2-管理员认证操作.md)。用户于 2026-10-14（Asia/Shanghai）确认 A4 Windows 网页及完整 53 项后端测试通过，A1～A4 已验收。A5 配置、获取代码及本机复测见 [A5 本地文件存储运行与验收](docs/A5-本地文件存储运行与验收.md)，实际测试见 [A5 验证记录](docs/A5-验证记录.md)。A5 Windows 尚待验收。已有 mianmian 账号无需重建，保留原 .env、数据库与数据卷；A4 操作说明继续保留。
+A1～A5 Windows 验收已由用户确认符合要求；A6 Windows 待本机验收。一次性获取代码、测试、启动和网页操作见 [A6 PDF 文献管理运行与验收](docs/A6-PDF文献管理运行与验收.md)，实际结果见 [A6 验证记录](docs/A6-验证记录.md)。已有 mianmian 无需重建，保留原 .env、知识库、数据库卷及原件目录。历史 A2 [认证操作](docs/A2-管理员认证操作.md)、A4/A5 说明继续保留。
 
 需求依据：[完整需求规格说明 v1.0](医疗%20RAG%20系统｜完整需求规格说明%20v1.0.md)、[分阶段开发计划](docs/分阶段开发计划-v1.0.md)。后续按小任务开发，每次验收后等待用户确认。
 
@@ -12,7 +12,7 @@ A2 的接口格式和 Session/CSRF 说明见 [管理员认证操作](docs/A2-管
 
 1. **Git for Windows**：用于下载及同步代码，安装后打开新的 PowerShell。
 2. **Java JDK 21**：例如 Eclipse Temurin 21。安装时启用 `JAVA_HOME` 与 PATH 配置；不是只安装 JRE。
-3. **Node.js 24 LTS**：附带 npm；也支持 Node 22.12 及以上的 22 LTS。不要使用过旧 Node。
+3. **Node.js 24 LTS**：附带 npm；也支持 Node 22.13 及以上的 22 LTS（PDF.js 的要求）。不要使用过旧 Node。
 4. **Docker Desktop**：按官方要求启用 WSL 2/虚拟化，打开 Docker Desktop 等待就绪，使用 Linux containers。这里只用 Docker 运行数据库，前后端仍在 Windows 本机启动；整套 Compose 在 E 阶段实现。
 
 软件的官方安装说明：[Git](https://git-scm.com/downloads/win)、[JDK](https://adoptium.net/temurin/releases/?version=21)、[Node.js](https://nodejs.org/)、[Docker Desktop](https://docs.docker.com/desktop/setup/install/windows-install/)。首次下载依赖需要网络。
@@ -36,11 +36,11 @@ Java 应为 21，Node 推荐 24；Docker 输出须包含 Client 和 Server。不
 ```powershell
 git clone https://github.com/Yuki-1109/Medical-RAG-System.git
 cd Medical-RAG-System
-# 合并 main 前使用已推送的 A5 分支：
-git switch codex/a5-local-file-storage
+# 合并 main 前使用已推送的 A6 分支：
+git switch codex/a6-pdf-document-management
 ```
 
-已有数据库升级 A5 只需启动原容器 `docker start medical-rag-postgres`，然后启动后端，保留原 .env。A5 没有新增迁移；现有 V3 不重复迁移。以下初始化命令用于第一次安装新环境；已有管理员不重新创建。
+已有数据库升级 A6 只需启动原容器 `docker start medical-rag-postgres`，启动后端增量执行 V4，保留原 .env；在 frontend 执行 `npm.cmd ci` 安装新增预览依赖。详细 fetch/switch 命令见 A6 文档。以下初始化命令用于第一次安装新环境；已有管理员不重新创建。
 
 在仓库根目录运行：
 
@@ -55,7 +55,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Initialize-Databas
 - 使用命名数据卷 `medical-rag-pgdata` 保存数据库，监听 `127.0.0.1:5433`，避免与常见 5432 冲突。
 - 已有容器时启动现有容器，保留数据。不要删除数据卷；修改 `.env` 密码不会修改已有数据库密码。
 
-看到“PostgreSQL 已就绪”后继续。数据库扩展由后端首次启动时的 Flyway V1 迁移启用；A2 的 V2 创建 users 表及单管理员约束，**不会预设账号或密码**。A4 V3 只新增 knowledge_bases 表、归属外键和索引；已有 V2 管理员、密码哈希和用户表保持不变，不删除数据卷、不修改 V1/V2、不重新初始化数据库。
+看到“PostgreSQL 已就绪”后继续。Flyway V1 启用 pgvector，V2 创建 users 及单管理员约束（不预设账号或密码），V3 创建知识库。A6 V4 新增 documents、归属外键/索引/生命周期和知识库 deletion_pending；保留原账号、密码哈希和知识库，不删除数据卷、不修改 V1～V3、不重新初始化数据库。资料外键 RESTRICT，不使用 CASCADE 绕过原件清理。
 
 `.env` 只留在本机，不截图公开、不提交 Git。配置示例中的 DB_PASSWORD 为空是有意设计，应用没有默认密码。初始化脚本适合 A1 开发，数据库角色拥有创建扩展所需权限；正式发布时再收紧迁移/运行账号权限。
 
@@ -73,7 +73,7 @@ Flyway 对已安装的扩展执行 `CREATE EXTENSION IF NOT EXISTS vector`。缺
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Start-Backend.ps1
 ```
 
-第一次会下载 Maven 3.9.11 与依赖，耗时取决于网络。成功时看到 `Started MedicalRagApplication` 与端口 8080 的日志；Flyway 按顺序执行尚未执行的 V1/V2/V3；已有 V2 只增量执行 V3，再次启动显示 schema 已是最新版本。只有通过 A2 setup API 才会创建管理员，健康接口仍公开可用。
+第一次会下载 Maven 3.9.11 与依赖，耗时取决于网络。成功时看到 `Started MedicalRagApplication` 与端口 8080；Flyway 按顺序执行尚未完成的 V1～V4，已有 V3 只增量执行 V4，再次启动不重复迁移。只有 A2 setup API 会创建管理员，健康接口仍公开可用。
 
 直接访问 [后端健康接口](http://127.0.0.1:8080/api/health) 可查看 JSON。后端正常时状态为 `UP`；响应不包含密码、数据库连接字符串或用户名。8080 当前只提供 API，页面在前端 5173。
 
@@ -87,7 +87,7 @@ A5 默认原件目录为仓库的 `data/originals`，PDF 上限 50 MiB、单图 
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Start-Frontend.ps1
 ```
 
-首次会自动执行 `npm ci` 安装锁定依赖。看到 Vite 的 Local 地址后，浏览器打开：
+首次会自动执行 `npm ci` 安装锁定依赖；从 A5 更新后即使已有 node_modules，也先在 frontend 手动执行 `npm.cmd ci`。看到 Vite 的 Local 地址后，浏览器打开：
 
 **[http://127.0.0.1:5173](http://127.0.0.1:5173)**
 
@@ -95,7 +95,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Start-Frontend.ps1
 
 未登录直接输入 `/app` 或 `/app/health` 会转到登录页；刷新会重新询问后端当前账号。登录成功重新获取 CSRF，退出及会话失效会清理前端登录状态；不把密码、Cookie 或 CSRF 存到浏览器本地存储。
 
-A1 的启动检查页保留在 [http://127.0.0.1:5173/health](http://127.0.0.1:5173/health)，登录后也可通过左侧“服务检查”进入。后端、PostgreSQL、pgvector、Flyway 四项应显示“正常”。“我的知识库”已可点击；进入后支持卡片列表、新建、编辑、确认删除和当前库切换。知识库名称 1～100 字符，简介最多 2000 字符，响应 ID 为字符串。当前库由真实详情路由建立，刷新重新核验，删除/退出清理。文献、图片和问答等导航继续标注待开发。
+A1 的启动检查页保留在 [http://127.0.0.1:5173/health](http://127.0.0.1:5173/health)，登录后也可通过左侧“服务检查”进入。后端、PostgreSQL、pgvector、Flyway 四项应显示“正常”。知识库支持卡片列表、新建、编辑、切换及确认删除，名称 1～100 字符、简介最多 2000 字符，ID 为字符串。进入当前库的“文献管理”可上传、预览、下载和确认删除 PDF；文献计数真实查询数据库，非空库删除展示影响并清理原件，失败保留凭据供重试。图片、片段、问答等导航继续标注待开发。
 
 通信流程：浏览器 `/api/health` → Vite 本机代理 → Spring Boot → 实际 PostgreSQL 查询。数据库检查失败返回 HTTP 503；前端会展示真实组件状态。后端未启动时提示连接失败。
 
@@ -146,7 +146,7 @@ cd ..\backend
 
 普通后端 verify 执行单元测试并打包；**不代表数据库集成测试已执行**。带 `-Pintegration-test` 才会运行真实数据库健康、迁移幂等、扩展缺失、迁移记录缺失、A2 认证、A4 CRUD/归属/CSRF、V2→V3 升级和知识库重启持久化测试；其中包含 8 路并发初始化、真实 HTTP Session/CSRF、退出失效和 jar 进程重启后登录。A5 增加真实文件读写/哈希/补偿/路径与权限测试，以及实际 Spring Boot 子 JVM 重启后的原件读取。测试使用独立临时数据库与原件根目录，不创建/删除用户本机管理员，不使用实际 APP_STORAGE_ROOT。没有 Docker 时该命令应失败，不把跳过当成功。
 
-A5 Linux 实际结果：后端 52 项单元 + 48 项集成，共 100 项通过（0 失败/错误/跳过）；前端 29 项单元、类型检查/生产构建、16 项浏览器回归通过。Windows A5 尚待用户复测；权限受限的符号链接及不支持的 POSIX 场景会明确报告跳过，不能计为通过。
+A6 Linux 实际结果：后端 62 项单元 + 82 项集成，共 144 项通过（0 失败/错误/跳过），完整保留 A1～A5 的 100 项；前端 35 项单元、类型/生产构建、23 项浏览器回归及 1 项生产构建完整流程通过。Windows A6 待验收；权限受限符号链接及不支持的 POSIX 场景须明确报告原因，不能计为通过。
 
 浏览器测试使用自动隔离的真实数据库与后端，不使用用户数据库。先执行上述 Maven verify 生成 jar，并确保本机 Docker 已就绪：
 
@@ -165,14 +165,15 @@ Linux 可在 backend 执行 `./mvnw verify` / `./mvnw spring-boot:run`，前端�
 ## 8. 版本、许可证与 Git 同步
 
 - Vue 3.5.44、Vite 8.3.4、Element Plus 2.14.7、Vue Router 4.6.4；Java 21、Spring Boot 3.5.16、Maven 3.9.11。
+- A6 增加 PDFBox 3.0.8 与 PDF.js 6.4.299，核心均 Apache-2.0；字体/WASM 子资源保留独立许可证，具体版本、许可与本地资源构建见 A6 验证记录。
 - Spring AI 官方说明 `1.1.x` 对应 Boot `3.5.x`；A1 不加载模型依赖，不需要 Key。后续 B 再选择同系列稳定补丁。
 - Maven 的数据库/Flyway/测试库版本由 Spring Boot BOM 统一管理，前端精确版本及 package-lock 固定。依赖及许可证说明见 [A1 依赖说明](docs/A1-依赖说明.md)。项目开源许可证将在公开发布前确认，本次不擅自替用户选择代码授权。
 
-代码保存在独立 A5 分支，基于已验收 A4 提交 644fefa；原 A1～A4 分支及提交保留。本次用户已授权 A5 提交及推送，仅同步开发分支：
+代码保存在独立 A6 分支，基于已验收 A5 提交 4a93e0e；原 A1～A5 分支及提交保留。本次用户已授权 A6 提交及推送，仅同步开发分支：
 
 ```powershell
 git status
-git push -u origin codex/a5-local-file-storage
+git push -u origin codex/a6-pdf-document-management
 ```
 
-分支推送后可在 GitHub 发起 Pull Request，保留基于 A4 的依赖关系，确认审查后再合并；另一台电脑按 A5 运行文档显式 fetch 该分支即可。不要提交 `.env`、上传原件、数据库卷、私有日志或备份。本次完成 A5 后停止，不自动合并 main 或发布 Release。A6 文献上传与原文预览需用户明确确认后开发。
+分支推送后可在 GitHub 发起 Pull Request，保留基于 A5 的依赖关系，确认审查后再合并；另一台电脑按 A6 运行文档显式 fetch 该分支即可。不要提交 .env、原件、数据库卷、私有日志或备份。本次完成 A6 后停止，不自动合并 main 或发布 Release；A7 医学图片上传需用户明确确认后开发。

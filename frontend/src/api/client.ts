@@ -8,6 +8,7 @@ export class ApiError extends Error {
 interface RequestOptions extends RequestInit {
   acceptedStatuses?: number[]
   notifyUnauthorized?: boolean
+  responseType?: 'json' | 'blob'
 }
 
 let unauthorizedHandler: (() => void) | undefined
@@ -21,9 +22,9 @@ export function clearCsrf() { csrfToken = null; csrfPending = null }
 
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   if (!path.startsWith('/api/') || path.includes('://')) throw new Error('API 请求必须使用本机相对地址')
-  const { acceptedStatuses = [200, 201, 204], notifyUnauthorized = true, ...init } = options
+  const { acceptedStatuses = [200, 201, 204], notifyUnauthorized = true, responseType = 'json', ...init } = options
   const headers = new Headers(init.headers)
-  headers.set('Accept', 'application/json')
+  headers.set('Accept', responseType === 'blob' ? 'application/pdf' : 'application/json')
   let response: Response
   try {
     response = await fetch(path, {
@@ -33,6 +34,21 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
     })
   } catch {
     throw new ApiError(0, 'NETWORK_UNAVAILABLE', '无法连接后端或请求超时，请确认后端已启动，然后重新检查。')
+  }
+  return decode<T>(response, acceptedStatuses, notifyUnauthorized, responseType)
+}
+
+async function decode<T>(response: Response, acceptedStatuses = [200, 201, 204], notifyUnauthorized = true, responseType: 'json' | 'blob' = 'json'): Promise<T> {
+  if (acceptedStatuses.includes(response.status) && responseType === 'blob') {
+    if (!response.headers.get('Content-Type')?.toLowerCase().startsWith('application/pdf')) {
+      throw new ApiError(0, 'INVALID_RESPONSE', '后端未返回有效的 PDF 原件，请重新检查。')
+    }
+    let original: Blob
+    try { original = await response.blob() }
+    catch { throw new ApiError(0, 'NETWORK_UNAVAILABLE', 'PDF 原件传输中断，请检查后端和连接后重新加载。') }
+    if (!original.size) throw new ApiError(0, 'INVALID_RESPONSE', 'PDF 原件为空，请检查存储状态。')
+    activityHandler?.()
+    return original as T
   }
   const payload: unknown = response.status === 204 ? undefined : await response.json().catch(() => null)
   if (!acceptedStatuses.includes(response.status)) {
@@ -51,6 +67,41 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   }
   activityHandler?.()
   return payload as T
+}
+
+/** Real multipart byte progress; keep Session/CSRF and common error/expiry handling. */
+export async function uploadForm<T>(path: string, body: FormData, progress: (percent: number) => void, signal: AbortSignal): Promise<T> {
+  if (!path.startsWith('/api/') || path.includes('://')) throw new Error('API 请求必须使用本机相对地址')
+  async function send(): Promise<T> {
+    const token = await getCsrf()
+    if (signal.aborted) throw new DOMException('Upload aborted', 'AbortError')
+    return new Promise<T>((resolve, reject) => {
+      const xhr = new XMLHttpRequest()
+      const abort = () => xhr.abort()
+      const finish = () => signal.removeEventListener('abort', abort)
+      xhr.open('POST', path)
+      xhr.withCredentials = true
+      xhr.timeout = 120000
+      xhr.setRequestHeader('Accept', 'application/json')
+      xhr.setRequestHeader('X-CSRF-TOKEN', token)
+      xhr.upload.onprogress = event => { if (event.lengthComputable) progress(Math.min(100, Math.round(event.loaded / event.total * 100))) }
+      xhr.onload = () => {
+        finish()
+        const response = new Response(xhr.responseText, { status: xhr.status, headers: { 'Content-Type': xhr.getResponseHeader('Content-Type') || '' } })
+        void decode<T>(response).then(resolve, reject)
+      }
+      xhr.onerror = xhr.ontimeout = () => { finish(); reject(new ApiError(0, 'NETWORK_UNAVAILABLE', '上传连接中断或超时，请刷新列表核对结果后再重试，避免重复上传。')) }
+      xhr.onabort = () => { finish(); reject(new DOMException('Upload aborted', 'AbortError')) }
+      signal.addEventListener('abort', abort, { once: true })
+      xhr.send(body) // Browser supplies its own multipart boundary; never set Content-Type.
+    })
+  }
+  try { return await send() }
+  catch (error) {
+    if (!(error instanceof ApiError) || error.code !== 'CSRF_INVALID' || signal.aborted) throw error
+    await getCsrf(true)
+    return send()
+  }
 }
 
 export async function getCsrf(force = false): Promise<string> {

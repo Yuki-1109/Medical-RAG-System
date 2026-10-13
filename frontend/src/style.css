@@ -130,3 +130,20 @@ footer { margin-top: 24px; text-align: center; }
   .page-header { flex-direction: column; }
   h1 { font-size: 23px; }
 }
+.documents-page, .document-preview-page { min-width: 0; }
+.document-upload { padding: 20px; margin: 18px 0; border: 1px solid #dce5e9; border-radius: 10px; background: white; }
+.document-upload label { display: block; font-weight: 600; margin-bottom: 10px; }
+.document-upload input { max-width: 100%; margin: 0 12px 12px 0; }
+.document-list { display: grid; gap: 12px; margin-top: 18px; }
+.document-row { background: white; border: 1px solid #dce5e9; border-radius: 10px; padding: 18px; display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+.document-row-info { min-width: 0; }
+.document-row h3, .document-preview-page h2 { overflow-wrap: anywhere; margin-top: 0; }
+.document-row-info p { color: #60717b; font-size: 13px; }
+.document-row-actions { display: flex; flex-wrap: wrap; gap: 8px; flex-shrink: 0; }
+.document-row-actions .el-button { margin-left: 0; }
+.document-warning { color: #94601e; font-size: 13px; overflow-wrap: anywhere; }
+.pdf-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 18px 0; }
+.pdf-toolbar .el-button { margin-left: 0; }
+.pdf-canvas-host { max-width: 100%; overflow: auto; padding: 16px; background: #e6edf0; border-radius: 10px; }
+.pdf-canvas-host canvas { display: block; max-width: 100%; height: auto; margin: 0 auto; background: white; }
+@media (max-width: 1100px) { .document-row { align-items: flex-start; flex-direction: column; } }

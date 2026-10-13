@@ -60,27 +60,27 @@ it('focus revalidation retains an open editor until a missing-library response c
   expect(knowledgeBaseContext.current).toBeNull()
 })
 it('cancel or close sends no delete and preserves selected data', async () => {
-  const fetch = vi.fn()
+  const fetch = vi.fn().mockImplementation(() => Promise.resolve(json(base)))
   vi.stubGlobal('fetch', fetch)
   knowledgeBaseContext.current = base
   for (const action of ['cancel', 'close']) {
     vi.mocked(ElMessageBox.confirm).mockRejectedValueOnce(action)
     expect(await confirmDeleteKnowledgeBase(base)).toBe(false)
   }
-  expect(fetch).not.toHaveBeenCalled()
+  expect(fetch.mock.calls.every(call => call[0] === '/api/knowledge-bases/12' && call[1].method === undefined)).toBe(true)
   expect(knowledgeBaseContext.current?.id).toBe('12')
 })
 it('only confirmed successful deletion clears the selected library', async () => {
   vi.mocked(ElMessageBox.confirm).mockResolvedValueOnce('confirm' as Awaited<ReturnType<typeof ElMessageBox.confirm>>)
   knowledgeBaseContext.current = base
-  vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(json({ headerName: 'X-CSRF-TOKEN', token: 'test-only' })).mockResolvedValueOnce(new Response(null, { status: 204 })))
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(json(base)).mockResolvedValueOnce(json({ headerName: 'X-CSRF-TOKEN', token: 'test-only' })).mockResolvedValueOnce(new Response(null, { status: 204 })))
   expect(await confirmDeleteKnowledgeBase(base)).toBe(true)
   expect(knowledgeBaseContext.current).toBeNull()
 })
 it('failed deletion preserves context and reports the backend error', async () => {
   vi.mocked(ElMessageBox.confirm).mockResolvedValueOnce('confirm' as Awaited<ReturnType<typeof ElMessageBox.confirm>>)
   knowledgeBaseContext.current = base
-  vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(json({ headerName: 'X-CSRF-TOKEN', token: 'test-only' })).mockResolvedValueOnce(json({ code: 'DATABASE_UNAVAILABLE', message: '数据库暂时不可用' }, 503)))
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(json(base)).mockResolvedValueOnce(json({ headerName: 'X-CSRF-TOKEN', token: 'test-only' })).mockResolvedValueOnce(json({ code: 'DATABASE_UNAVAILABLE', message: '数据库暂时不可用' }, 503)))
   await expect(confirmDeleteKnowledgeBase(base)).rejects.toMatchObject({ status: 503 })
   expect(knowledgeBaseContext.current?.id).toBe('12')
 })

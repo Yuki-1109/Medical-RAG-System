@@ -3,25 +3,28 @@ package com.medicalrag.knowledgebase;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.ObjectProvider;
 
 @Service
 public class KnowledgeBaseService {
     private final KnowledgeBaseRepository repository;
     private final KnowledgeBaseMaterials materials;
+    private final ObjectProvider<KnowledgeBaseDeletion> deletion;
 
-    public KnowledgeBaseService(KnowledgeBaseRepository repository, KnowledgeBaseMaterials materials) {
+    public KnowledgeBaseService(KnowledgeBaseRepository repository, KnowledgeBaseMaterials materials, ObjectProvider<KnowledgeBaseDeletion> deletion) {
         this.repository = repository;
         this.materials = materials;
+        this.deletion = deletion;
     }
 
     public List<KnowledgeBase> list(long owner) {
-        materials.requireEmptyStage();
+        materials.requireSupportedStage();
         return repository.list(owner);
     }
 
     public KnowledgeBase detail(long id, long owner) {
         KnowledgeBase base = repository.find(id, owner, false).orElseThrow(KnowledgeBaseException::missing);
-        materials.requireEmptyStage();
+        materials.requireSupportedStage();
         return base;
     }
 
@@ -29,7 +32,7 @@ public class KnowledgeBaseService {
     public KnowledgeBase create(long owner, String name, String description) {
         String normalized = normalizeName(name);
         String normalizedDescription = normalizeDescription(description);
-        materials.requireEmptyStage();
+        materials.requireSupportedStage();
         return repository.create(owner, normalized, normalizedDescription);
     }
 
@@ -37,15 +40,17 @@ public class KnowledgeBaseService {
     public KnowledgeBase update(long id, long owner, String name, String description) {
         String normalized = normalizeName(name);
         String normalizedDescription = normalizeDescription(description);
-        materials.requireEmptyStage();
+        materials.requireSupportedStage();
+        KnowledgeBase locked = repository.find(id, owner, true).orElseThrow(KnowledgeBaseException::missing);
+        if (locked.deletionPending()) throw new KnowledgeBaseException(409, "KNOWLEDGE_BASE_DELETING", "知识库删除未完成，请重试删除，不可编辑或上传新资料");
         return repository.update(id, owner, normalized, normalizedDescription).orElseThrow(KnowledgeBaseException::missing);
     }
 
-    @Transactional
     public void delete(long id, long owner) {
-        repository.find(id, owner, true).orElseThrow(KnowledgeBaseException::missing);
-        materials.requireEmptyStage();
-        if (!repository.delete(id, owner)) throw KnowledgeBaseException.missing();
+        deletion.getObject().delete(id, owner);
+    }
+    public void delete(long id,long owner,Long expectedDocuments,Long expectedPending) {
+        deletion.getObject().delete(id,owner,expectedDocuments,expectedPending);
     }
 
     public static long parseId(String value) {

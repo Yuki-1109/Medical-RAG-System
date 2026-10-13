@@ -3,6 +3,7 @@ import { ApiError, mutate, request } from './client'
 export interface KnowledgeBase {
   id: string; name: string; description: string; demo: boolean
   createdAt: string; updatedAt: string; documentCount: number; imageCount: number
+  deletionPending?: boolean; pendingCleanupCount?: number
 }
 export interface KnowledgeBaseInput { name: string; description: string }
 
@@ -12,11 +13,14 @@ export function validKnowledgeBaseId(id: unknown): id is string {
 function base(value: KnowledgeBase): KnowledgeBase {
   if (!value || !validKnowledgeBaseId(value.id) || typeof value.name !== 'string' || typeof value.description !== 'string'
     || typeof value.demo !== 'boolean' || !Number.isFinite(Date.parse(value.createdAt)) || !Number.isFinite(Date.parse(value.updatedAt))
-    || !Number.isSafeInteger(value.documentCount) || value.documentCount < 0 || !Number.isSafeInteger(value.imageCount) || value.imageCount < 0) {
+    || !Number.isSafeInteger(value.documentCount) || value.documentCount < 0 || !Number.isSafeInteger(value.imageCount) || value.imageCount < 0
+    || (value.pendingCleanupCount !== undefined && (!Number.isSafeInteger(value.pendingCleanupCount) || value.pendingCleanupCount < 0))
+    || (value.deletionPending !== undefined && typeof value.deletionPending !== 'boolean')) {
     throw new ApiError(0, 'INVALID_RESPONSE', '知识库响应无效，请重新检查后端状态。')
   }
   return { id: value.id, name: value.name, description: value.description, demo: value.demo,
-    createdAt: value.createdAt, updatedAt: value.updatedAt, documentCount: value.documentCount, imageCount: value.imageCount }
+    createdAt: value.createdAt, updatedAt: value.updatedAt, documentCount: value.documentCount, imageCount: value.imageCount,
+    deletionPending: value.deletionPending === true, pendingCleanupCount: value.pendingCleanupCount ?? 0 }
 }
 function path(id: string) {
   if (!validKnowledgeBaseId(id)) throw new ApiError(400, 'INVALID_KNOWLEDGE_BASE_ID', '知识库 ID 格式无效，请从列表选择。')
@@ -34,8 +38,9 @@ export async function createKnowledgeBase(input: KnowledgeBaseInput): Promise<Kn
 export async function updateKnowledgeBase(id: string, input: KnowledgeBaseInput): Promise<KnowledgeBase> {
   return base(await mutate(path(id), JSON.stringify(input), 'application/json', true, 'PATCH'))
 }
-export async function deleteKnowledgeBase(id: string): Promise<void> {
-  await mutate(path(id), undefined, 'application/json', true, 'DELETE')
+export async function deleteKnowledgeBase(id: string, expected?: KnowledgeBase): Promise<void> {
+  const counts = expected ? `?expectedDocumentCount=${expected.documentCount}&expectedPendingCleanupCount=${expected.pendingCleanupCount ?? 0}` : ''
+  await mutate(path(id) + counts, undefined, 'application/json', true, 'DELETE')
 }
 export function validateKnowledgeBase(input: KnowledgeBaseInput): string {
   const name = input.name.trim()

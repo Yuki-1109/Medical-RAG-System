@@ -22,7 +22,8 @@ class KnowledgeBaseMigrationIT {
         Flyway.configure().dataSource(source).target("2").load().migrate();
         String hash = new BCryptPasswordEncoder(12).encode("Isolated-Migration-Password-2026");
         long id = jdbc.queryForObject("INSERT INTO users (username,password_hash) VALUES ('mianmian',?) RETURNING id", Long.class, hash);
-        var migration = Flyway.configure().dataSource(source).cleanDisabled(true).load();
+        // Preserve the original V2 -> V3 regression; A6 tests V3 -> V4 separately.
+        var migration = Flyway.configure().dataSource(source).target("3").cleanDisabled(true).load();
         assertThat(migration.migrate().migrationsExecuted).isEqualTo(1);
         assertThat(migration.info().current().getVersion().getVersion()).isEqualTo("3");
         assertThat(jdbc.queryForObject("SELECT id FROM users", Long.class)).isEqualTo(id);

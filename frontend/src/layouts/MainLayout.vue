@@ -11,7 +11,7 @@ const route = useRoute()
 const router = useRouter()
 const busy = ref(false)
 const error = ref('')
-const laterModules = ['文献管理', '片段编辑', '医学图片', 'AI 智能问答', '历史会话', '系统设置']
+const laterModules = ['片段编辑', '医学图片', 'AI 智能问答', '历史会话', '系统设置']
 const options = ref<KnowledgeBase[]>([])
 const availableOptions = computed(() => knowledgeBaseContext.current
   ? [knowledgeBaseContext.current, ...options.value.filter(base => base.id !== knowledgeBaseContext.current?.id)] : options.value)
@@ -72,6 +72,7 @@ onBeforeUnmount(() => {
         <router-link to="/app" :class="{ selected: route.path === '/app' }">系统首页</router-link>
         <router-link to="/app/health" :class="{ selected: route.path === '/app/health' }">服务检查</router-link>
         <router-link to="/app/knowledge-bases" :class="{ selected: route.path.startsWith('/app/knowledge-bases') }">我的知识库</router-link>
+        <router-link :to="knowledgeBaseContext.current ? `/app/knowledge-bases/${knowledgeBaseContext.current.id}/documents` : '/app/knowledge-bases'" :class="{ selected: route.name === 'documents' || route.name === 'document-preview' }">文献管理</router-link>
         <p class="sidebar-label">后续模块</p>
         <span v-for="name in laterModules" :key="name" class="pending-navigation" aria-disabled="true">{{ name }}<small>待开发</small></span>
       </nav>
@@ -84,7 +85,7 @@ onBeforeUnmount(() => {
       </header>
       <div class="current-library-bar">
         <span class="current-library-label">当前知识库：{{ knowledgeBaseContext.loading ? '正在核验…' : knowledgeBaseContext.current?.name || '尚未选择' }}<small v-if="knowledgeBaseContext.current">ID：{{ knowledgeBaseContext.current.id }}</small></span>
-        <el-select aria-label="切换知识库" placeholder="选择或切换知识库" :model-value="knowledgeBaseContext.current?.id" :loading="optionsLoading" @visible-change="loadOptions" @change="(id: string) => router.push(`/app/knowledge-bases/${id}`)">
+        <el-select aria-label="切换知识库" placeholder="选择或切换知识库" :model-value="knowledgeBaseContext.current?.id" :loading="optionsLoading" @visible-change="loadOptions" @change="(id: string) => router.push(`/app/knowledge-bases/${id}${route.name === 'documents' || route.name === 'document-preview' ? '/documents' : ''}`)">
           <el-option v-for="base in availableOptions" :key="base.id" :label="base.name" :value="base.id" />
         </el-select>
       </div>

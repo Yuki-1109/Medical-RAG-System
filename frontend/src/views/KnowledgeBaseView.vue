@@ -28,7 +28,7 @@ async function remove() {
   const base = context.current
   deleting.value = true; error.value = ''
   try { if (await confirmDeleteKnowledgeBase(base)) await router.replace('/app/knowledge-bases') }
-  catch (cause) { error.value = cause instanceof Error ? cause.message : '删除未完成，请重试。' }
+  catch (cause) { const message = cause instanceof Error ? cause.message : '删除未完成，请重试。'; await loadCurrentKnowledgeBase(base.id, true); error.value = message }
   finally { deleting.value = false }
 }
 </script>
@@ -39,10 +39,13 @@ async function remove() {
     <p v-if="context.loading" role="status">正在核验并加载当前知识库…</p>
     <template v-else-if="context.error"><el-alert :title="context.error" type="error" :closable="false" show-icon class="form-alert" /><el-button @click="loadCurrentKnowledgeBase(String(route.params.id))">重新检查</el-button></template>
     <template v-else-if="context.current">
-      <div class="page-header"><div><p class="eyebrow">当前知识库 · ID：{{ context.current.id }}</p><h2>{{ context.current.name }}</h2></div><div class="library-header-actions"><el-tag v-if="context.current.demo">演示库</el-tag><el-button @click="formError = ''; formOpen = true">编辑知识库</el-button><el-button type="danger" plain :loading="deleting" @click="remove">删除知识库</el-button></div></div>
+      <div class="page-header"><div><p class="eyebrow">当前知识库 · ID：{{ context.current.id }}</p><h2>{{ context.current.name }}</h2></div><div class="library-header-actions"><el-tag v-if="context.current.demo">演示库</el-tag><el-button :disabled="context.current.deletionPending" @click="formError = ''; formOpen = true">编辑知识库</el-button><el-button type="danger" plain :loading="deleting" @click="remove">删除知识库</el-button></div></div>
       <el-alert v-if="error" :title="error" type="error" :closable="false" show-icon class="form-alert" />
       <el-card shadow="never"><p class="library-description">{{ context.current.description || '暂无简介' }}</p><p class="library-counts">文献 {{ context.current.documentCount }} · 图片 {{ context.current.imageCount }}</p><p class="library-meta">创建于 {{ new Date(context.current.createdAt).toLocaleString('zh-CN') }}<br />更新于 {{ new Date(context.current.updatedAt).toLocaleString('zh-CN') }}</p></el-card>
-      <el-empty v-if="!context.current.documentCount && !context.current.imageCount" description="当前知识库为空。文献与图片上传功能尚未开放。" />
+      <el-alert v-if="context.current.deletionPending" title="知识库删除未完成，资料不可访问，请再次删除以重试清理。" type="warning" :closable="false" show-icon />
+      <p v-if="context.current.pendingCleanupCount" class="document-warning">另有 {{ context.current.pendingCleanupCount }} 条上传未完成或待清理记录。</p>
+      <router-link :to="`/app/knowledge-bases/${context.current.id}/documents`" class="primary-link">进入文献管理 →</router-link>
+      <el-empty v-if="!context.current.documentCount && !context.current.imageCount && !context.current.pendingCleanupCount" description="当前知识库为空，可以进入文献管理上传 PDF；图片功能待开发。" />
       <KnowledgeBaseForm :open="formOpen" :editing="context.current" :busy="saving" :error="formError" @close="formOpen = false" @save="save" />
     </template>
   </main>

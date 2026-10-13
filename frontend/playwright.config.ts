@@ -14,7 +14,7 @@ export default defineConfig({
     },
   },
   webServer: {
-    command: 'npm run dev',
+    command: process.env.MEDICAL_RAG_E2E_PRODUCTION === '1' ? `npm run preview -- --port ${port} --strictPort` : 'npm run dev',
     url: `http://127.0.0.1:${port}`,
     reuseExistingServer: false,
   },

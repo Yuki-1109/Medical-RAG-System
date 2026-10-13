@@ -32,6 +32,19 @@ public class KnowledgeBaseFileStorage {
     public StoredOriginal save(String knowledgeBaseId, String originalName, OriginalType expectedType, InputStream source) {
         return store.save(scope(knowledgeBaseId), originalName, expectedType, source);
     }
+    public StorageReservation reserve(String knowledgeBaseId, OriginalType type) {
+        return store.reserve(scope(knowledgeBaseId), type);
+    }
+    public StoredOriginal saveReserved(String knowledgeBaseId, StorageReservation reservation, String name, InputStream source) {
+        return store.saveReserved(scope(knowledgeBaseId), reservation, name, source);
+    }
+    /** Only use the server reservation from an incomplete DB record, never request fields. */
+    public void discardReservation(String knowledgeBaseId, StorageReservation reservation) {
+        store.discardReservation(scope(knowledgeBaseId), reservation);
+    }
+    public <T> T inspect(String knowledgeBaseId, StoredOriginal receipt, OriginalInspection<T> inspection) {
+        return store.inspect(scope(knowledgeBaseId), receipt, inspection);
+    }
     /** Caller owns destination; all store-owned file handles are closed before returning. */
     public void copyTo(String knowledgeBaseId, StoredOriginal receipt, OutputStream destination) {
         store.copyTo(scope(knowledgeBaseId), receipt, destination);

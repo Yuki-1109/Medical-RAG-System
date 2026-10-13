@@ -83,13 +83,22 @@ final class LocalOriginalStore {
         return name;
     }
     StoredOriginal save(StorageScope scope, String originalName, OriginalType expected, InputStream source) {
+        return saveReserved(scope, reserve(scope, expected), originalName, source);
+    }
+    StorageReservation reserve(StorageScope scope, OriginalType type) {
+        if (scope == null || type == null) throw StorageException.unsafe();
+        return new StorageReservation(new StorageKey(type.namespace(), scope.knowledgeBaseId, tokens.get(), type).value(), type);
+    }
+    StoredOriginal saveReserved(StorageScope scope, StorageReservation reservation, String originalName, InputStream source) {
         if (scope == null || source == null) throw StorageException.unsafe();
+        StorageKey reserved = reservationKey(scope, reservation);
+        OriginalType expected = reservation.type();
         String name = validateName(originalName, expected);
         Path stage = null;
         boolean stageOwned = false;
         try {
-            UUID token = tokens.get();
-            var key = new StorageKey(expected.namespace(), scope.knowledgeBaseId, token, expected);
+            UUID token = reserved.token();
+            var key = reserved;
             Path parent = objectDirectory(key).getParent();
             ensureDirectory(parent); checkChain(parent);
             Path stages = root.resolve(".storage-staging"); checkChain(stages);
@@ -126,6 +135,48 @@ final class LocalOriginalStore {
             if (stageOwned) compensate(stage, expected, exception);
             throw exception;
         }
+    }
+    private StorageKey reservationKey(StorageScope scope, StorageReservation reservation) {
+        if (scope == null || reservation == null) throw StorageException.unsafe();
+        StorageKey key = StorageKey.parse(reservation.storageKey());
+        if (key.knowledgeBaseId() != scope.knowledgeBaseId || key.type() != reservation.type()) throw StorageException.unsafe();
+        return key;
+    }
+    /** Only for a persisted incomplete write intent, never for an active business resource. */
+    void discardReservation(StorageScope scope, StorageReservation reservation) {
+        StorageKey key = reservationKey(scope, reservation);
+        try {
+            Path objects = root.resolve(".storage-objects"); checkChain(objects);
+            Path directory = objectDirectory(key);
+            if (Files.exists(directory, LinkOption.NOFOLLOW_LINKS)) {
+                checkChain(directory);
+                Path candidate = directory.resolve("original." + key.type().extension());
+                if (Files.exists(candidate, LinkOption.NOFOLLOW_LINKS)) io.deleteFile(checkedFile(key));
+            }
+            Path stages = root.resolve(".storage-staging"); checkChain(stages);
+            Path stage = stages.resolve(key.token().toString());
+            if (Files.exists(stage, LinkOption.NOFOLLOW_LINKS)) {
+                checkChain(stage);
+                Path file = stage.resolve("original." + key.type().extension());
+                if (Files.exists(file, LinkOption.NOFOLLOW_LINKS)) {
+                    var attributes = Files.readAttributes(file, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+                    if (!attributes.isRegularFile() || attributes.isSymbolicLink()) throw StorageException.unsafe();
+                    io.deleteFile(file);
+                }
+                Files.delete(stage); // Exact owned intent only; unknown contents cause a visible failure.
+            }
+        } catch (IOException exception) { throw StorageException.io(exception); }
+    }
+    <T> T inspect(StorageScope scope, StoredOriginal receipt, OriginalInspection<T> inspection) {
+        StorageKey key = checkedKey(scope, receipt);
+        if (inspection == null) throw StorageException.unsafe();
+        try {
+            Path file = checkedFile(key);
+            try (var channel = FileChannel.open(file, StandardOpenOption.READ, LinkOption.NOFOLLOW_LINKS)) {
+                verify(channel, receipt); channel.position(0);
+                return inspection.inspect(channel);
+            }
+        } catch (IOException exception) { throw StorageException.io(exception); }
     }
     private void compensate(Path stage, OriginalType type, RuntimeException failure) {
         try {
