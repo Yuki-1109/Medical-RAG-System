@@ -1,0 +1,27 @@
+:root {
+  font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+  color: #243446;
+  background: #f4f7fa;
+  font-synthesis: none;
+}
+body { margin: 0; }
+* { box-sizing: border-box; }
+.startup-page { max-width: 1024px; margin: 0 auto; padding: 48px 28px; }
+.page-header { display: flex; justify-content: space-between; gap: 20px; align-items: flex-start; margin-bottom: 28px; }
+.eyebrow { color: #26756e; font-size: 14px; letter-spacing: .04em; }
+h1 { font-size: 28px; line-height: 1.5; margin: 8px 0; }
+.subtitle, .check-time, footer { color: #677585; font-size: 14px; line-height: 1.7; }
+.status-card { margin-bottom: 24px; border-radius: 12px; }
+.card-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+h2 { font-size: 18px; margin: 0; }
+.component-list { padding: 0; margin: 20px 0; list-style: none; }
+.component-row { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 18px 0; border-bottom: 1px solid #edf0f4; }
+h3 { font-size: 15px; margin: 0 0 6px; }
+.component-row p { font-size: 14px; color: #677585; margin: 0; line-height: 1.7; }
+.version { display: inline-block; font-size: 12px; color: #677585; margin-top: 5px; }
+footer { margin-top: 24px; text-align: center; }
+@media (max-width: 600px) {
+  .startup-page { padding: 24px 16px; }
+  .page-header { flex-direction: column; }
+  h1 { font-size: 23px; }
+}

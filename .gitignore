@@ -1,0 +1,30 @@
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+data/
+uploads/
+backups/
+*.dump
+*.sql.gz
+
+# Build, dependencies and execution evidence
+node_modules/
+dist/
+target/
+coverage/
+test-results/
+playwright-report/
+*.log
+.cache/
+.npm/
+
+# Local editor and OS files
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
