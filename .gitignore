@@ -8,6 +8,9 @@ secrets/
 data/
 uploads/
 backups/
+# Controlled storage namespaces (also protect an administrator-configured root in the repo)
+.storage-objects/
+.storage-staging/
 *.dump
 *.sql.gz
 

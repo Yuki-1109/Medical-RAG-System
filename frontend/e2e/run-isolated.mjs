@@ -3,7 +3,8 @@ import { spawn, execFileSync } from 'node:child_process'
 import { randomBytes, randomUUID } from 'node:crypto'
 import { createServer } from 'node:net'
 import { createServer as createHttpServer } from 'node:http'
-import { closeSync, existsSync, mkdirSync, openSync, readFileSync } from 'node:fs'
+import { closeSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { join, resolve } from 'node:path'
 
@@ -17,6 +18,7 @@ let created = false
 let backend
 let playwright
 let control
+let storageRoot
 let interrupted = false
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms))
 
@@ -61,12 +63,15 @@ try {
   if (!databaseReady) throw new Error('隔离 PostgreSQL 未就绪。')
   const backendPort = await freePort()
   const frontendPort = await freePort()
+  storageRoot = mkdtempSync(join(tmpdir(), 'medical-rag-e2e-storage-'))
   const environment = {
     ...process.env,
     DB_HOST: '127.0.0.1', DB_PORT: databasePort, DB_NAME: 'medical_rag_e2e', DB_USERNAME: 'medical_rag_e2e', DB_PASSWORD: password,
     SPRING_DATASOURCE_URL: `jdbc:postgresql://127.0.0.1:${databasePort}/medical_rag_e2e?connectTimeout=3&socketTimeout=3`,
     SPRING_DATASOURCE_USERNAME: 'medical_rag_e2e', SPRING_DATASOURCE_PASSWORD: password,
     SERVER_PORT: String(backendPort), FRONTEND_PORT: String(frontendPort), SESSION_COOKIE_SECURE: 'false',
+    APP_STORAGE_ROOT: storageRoot,
+    APP_STORAGE_MAX_PDF_BYTES: '52428800', APP_STORAGE_MAX_IMAGE_BYTES: '20971520',
     // Test-instance override only; leave the production A2 30-minute timeout unchanged.
     SERVER_SERVLET_SESSION_TIMEOUT: '1m',
     MEDICAL_RAG_E2E_ISOLATED: '1', MEDICAL_RAG_E2E_BACKEND: `http://127.0.0.1:${backendPort}`,
@@ -76,7 +81,7 @@ try {
   const logPath = join(frontend, `.cache/${name}-backend.log`)
   async function launchBackend() {
     const log = openSync(logPath, 'w')
-    backend = spawn(java, ['-jar', jar], { cwd: join(repository, 'backend'), env: environment, stdio: ['ignore', log, log] })
+    backend = spawn(java, ['-jar', jar, `--app.storage.root=${storageRoot}`, '--app.storage.max-pdf-bytes=52428800', '--app.storage.max-image-bytes=20971520'], { cwd: join(repository, 'backend'), env: environment, stdio: ['ignore', log, log] })
     closeSync(log)
     backend.on('error', () => { interrupted = true })
     for (let attempt = 0; attempt < 100 && !interrupted; attempt++) {
@@ -123,6 +128,7 @@ try {
   if (control) await new Promise(done => control.close(done))
   await stop(playwright)
   await stop(backend)
+  if (storageRoot) rmSync(storageRoot, { recursive: true }) // Only our newly created test directory.
   if (created) docker(['rm', '--force', '--volumes', name], { stdio: 'ignore' })
   console.log('仅清理本次创建的临时容器及其匿名卷，现有数据卷保持不变。')
 }

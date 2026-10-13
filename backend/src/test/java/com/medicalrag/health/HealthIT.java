@@ -2,6 +2,8 @@ package com.medicalrag.health;
 
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterAll;
+import com.medicalrag.testutil.TestStorageRoot;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
@@ -18,12 +20,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Testcontainers
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class HealthIT {
+    private static final TestStorageRoot STORAGE = TestStorageRoot.create();
+    @AfterAll static void releaseStorage() throws Exception { STORAGE.close(); }
     @Container
     static final PostgreSQLContainer<?> DATABASE = new PostgreSQLContainer<>(
             DockerImageName.parse("pgvector/pgvector:0.8.2-pg17").asCompatibleSubstituteFor("postgres"));
 
     @DynamicPropertySource
     static void databaseProperties(DynamicPropertyRegistry registry) {
+        STORAGE.configure(registry);
         registry.add("spring.datasource.url", DATABASE::getJdbcUrl);
         registry.add("spring.datasource.username", DATABASE::getUsername);
         registry.add("spring.datasource.password", DATABASE::getPassword);

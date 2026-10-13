@@ -2,9 +2,9 @@
 
 医疗文献与医学图片知识库 RAG 系统，本科毕业设计，面向 Windows 本地部署。
 
-**当前交付：A4 知识库 CRUD 与后端隔离。** 已提供真实知识库列表、新建、改名/简介、进入与切换、二次确认删除，以及后端账号归属检查；数据保存于 PostgreSQL。A1～A3 服务检查、初始化、Session/CSRF 登录继续保留。资料上传、原件存储和 RAG 尚未开发，不显示虚构统计。本地运行不需要模型 API Key。
+**当前交付：A5 本地原件存储与安全读取基础。** 已提供内部 Java 存储服务：PDF/JPEG/PNG 流式持久化、大小与基本格式校验、SHA-256、原子提交、路径防护、受控读取/删除和失败补偿。网页继续使用 A4 真实知识库管理；A1～A3 服务检查、初始化、Session/CSRF 登录保留。上传/下载业务接口、资料表、预览和 RAG 尚未开发，不显示虚构统计。本地运行不需要模型 API Key。
 
-A2 的接口格式和 Session/CSRF 说明见 [管理员认证操作](docs/A2-管理员认证操作.md)。用户已确认 A1/A2/A3 在 Windows 的核心验收。A4 升级、完整启动与实机验收见 [A4 知识库运行与验收](docs/A4-知识库运行与验收.md)，实际测试见 [A4 验证记录](docs/A4-验证记录.md)。已有 mianmian 账号无需重建，保留原数据库与数据卷。
+A2 的接口格式和 Session/CSRF 说明见 [管理员认证操作](docs/A2-管理员认证操作.md)。用户于 2026-10-14（Asia/Shanghai）确认 A4 Windows 网页及完整 53 项后端测试通过，A1～A4 已验收。A5 配置、获取代码及本机复测见 [A5 本地文件存储运行与验收](docs/A5-本地文件存储运行与验收.md)，实际测试见 [A5 验证记录](docs/A5-验证记录.md)。A5 Windows 尚待验收。已有 mianmian 账号无需重建，保留原 .env、数据库与数据卷；A4 操作说明继续保留。
 
 需求依据：[完整需求规格说明 v1.0](医疗%20RAG%20系统｜完整需求规格说明%20v1.0.md)、[分阶段开发计划](docs/分阶段开发计划-v1.0.md)。后续按小任务开发，每次验收后等待用户确认。
 
@@ -36,11 +36,11 @@ Java 应为 21，Node 推荐 24；Docker 输出须包含 Client 和 Server。不
 ```powershell
 git clone https://github.com/Yuki-1109/Medical-RAG-System.git
 cd Medical-RAG-System
-# 合并 main 前使用已推送的 A4 分支：
-git switch codex/a4-knowledge-base-crud
+# 合并 main 前使用已推送的 A5 分支：
+git switch codex/a5-local-file-storage
 ```
 
-已有数据库的 A4 升级只需启动原容器 `docker start medical-rag-postgres`，然后启动后端，保留原 .env。以下初始化命令用于第一次安装新环境；已有管理员不重新创建。
+已有数据库升级 A5 只需启动原容器 `docker start medical-rag-postgres`，然后启动后端，保留原 .env。A5 没有新增迁移；现有 V3 不重复迁移。以下初始化命令用于第一次安装新环境；已有管理员不重新创建。
 
 在仓库根目录运行：
 
@@ -76,6 +76,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Start-Backend.ps1
 第一次会下载 Maven 3.9.11 与依赖，耗时取决于网络。成功时看到 `Started MedicalRagApplication` 与端口 8080 的日志；Flyway 按顺序执行尚未执行的 V1/V2/V3；已有 V2 只增量执行 V3，再次启动显示 schema 已是最新版本。只有通过 A2 setup API 才会创建管理员，健康接口仍公开可用。
 
 直接访问 [后端健康接口](http://127.0.0.1:8080/api/health) 可查看 JSON。后端正常时状态为 `UP`；响应不包含密码、数据库连接字符串或用户名。8080 当前只提供 API，页面在前端 5173。
+
+A5 默认原件目录为仓库的 `data/originals`，PDF 上限 50 MiB、单图 20 MiB；**原 .env 不需要修改**。如需自定义，仅追加原 .env 中缺少的 APP_STORAGE_ROOT、APP_STORAGE_MAX_PDF_BYTES、APP_STORAGE_MAX_IMAGE_BYTES，参考 A5 运行文档，不用模板覆盖旧文件。组件启动只创建受控目录，不删除原件。路径不可用或配置无效会明确失败，不退回临时目录；原件不会成为公开静态文件。
 
 ## 4. 启动前端并打开网站
 
@@ -142,7 +144,9 @@ cd ..\backend
 .\mvnw.cmd verify -Pintegration-test
 ```
 
-普通后端 verify 执行单元测试并打包；**不代表数据库集成测试已执行**。带 `-Pintegration-test` 才会运行真实数据库健康、迁移幂等、扩展缺失、迁移记录缺失、A2 认证、A4 CRUD/归属/CSRF、V2→V3 升级和知识库重启持久化测试；其中包含 8 路并发初始化、真实 HTTP Session/CSRF、退出失效和 jar 进程重启后登录。测试使用独立临时数据库，不创建/删除用户本机管理员。没有 Docker 时该命令应失败，不把跳过当成功。
+普通后端 verify 执行单元测试并打包；**不代表数据库集成测试已执行**。带 `-Pintegration-test` 才会运行真实数据库健康、迁移幂等、扩展缺失、迁移记录缺失、A2 认证、A4 CRUD/归属/CSRF、V2→V3 升级和知识库重启持久化测试；其中包含 8 路并发初始化、真实 HTTP Session/CSRF、退出失效和 jar 进程重启后登录。A5 增加真实文件读写/哈希/补偿/路径与权限测试，以及实际 Spring Boot 子 JVM 重启后的原件读取。测试使用独立临时数据库与原件根目录，不创建/删除用户本机管理员，不使用实际 APP_STORAGE_ROOT。没有 Docker 时该命令应失败，不把跳过当成功。
+
+A5 Linux 实际结果：后端 52 项单元 + 48 项集成，共 100 项通过（0 失败/错误/跳过）；前端 29 项单元、类型检查/生产构建、16 项浏览器回归通过。Windows A5 尚待用户复测；权限受限的符号链接及不支持的 POSIX 场景会明确报告跳过，不能计为通过。
 
 浏览器测试使用自动隔离的真实数据库与后端，不使用用户数据库。先执行上述 Maven verify 生成 jar，并确保本机 Docker 已就绪：
 
@@ -164,11 +168,11 @@ Linux 可在 backend 执行 `./mvnw verify` / `./mvnw spring-boot:run`，前端�
 - Spring AI 官方说明 `1.1.x` 对应 Boot `3.5.x`；A1 不加载模型依赖，不需要 Key。后续 B 再选择同系列稳定补丁。
 - Maven 的数据库/Flyway/测试库版本由 Spring Boot BOM 统一管理，前端精确版本及 package-lock 固定。依赖及许可证说明见 [A1 依赖说明](docs/A1-依赖说明.md)。项目开源许可证将在公开发布前确认，本次不擅自替用户选择代码授权。
 
-代码保存在独立 A4 分支，基于已推送的 A3 提交 14c1047；原 A1/A2/A3 分支保留。本次用户已授权 A4 提交及推送，仅同步开发分支：
+代码保存在独立 A5 分支，基于已验收 A4 提交 644fefa；原 A1～A4 分支及提交保留。本次用户已授权 A5 提交及推送，仅同步开发分支：
 
 ```powershell
 git status
-git push -u origin codex/a4-knowledge-base-crud
+git push -u origin codex/a5-local-file-storage
 ```
 
-分支推送后可在 GitHub 发起 Pull Request，保留基于 A3 的依赖关系，确认审查后再合并；另一台电脑 `git fetch origin` 后切换该分支即可。不要提交 `.env`、上传原件、数据库卷、私有日志或备份。本次完成 A4 后停止，不自动合并 main 或发布 Release。A5 本机原件存储基础需用户明确确认后开发。
+分支推送后可在 GitHub 发起 Pull Request，保留基于 A4 的依赖关系，确认审查后再合并；另一台电脑按 A5 运行文档显式 fetch 该分支即可。不要提交 `.env`、上传原件、数据库卷、私有日志或备份。本次完成 A5 后停止，不自动合并 main 或发布 Release。A6 文献上传与原文预览需用户明确确认后开发。

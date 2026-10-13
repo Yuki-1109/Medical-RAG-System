@@ -8,6 +8,8 @@ import java.util.Map;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.medicalrag.testutil.RestartTestApplication;
+import com.medicalrag.testutil.TestStorageRoot;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -37,11 +39,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class KnowledgeBaseIT {
+    private static final TestStorageRoot STORAGE = TestStorageRoot.create();
+    @AfterAll static void releaseStorage() throws Exception { STORAGE.close(); }
     // Test-only credentials and disposable databases, never the real Windows administrator.
     static final String PASSWORD = "A4-Isolated-Integration-Password";
     @Container static final PostgreSQLContainer<?> DATABASE = new PostgreSQLContainer<>(
             DockerImageName.parse("pgvector/pgvector:0.8.2-pg17").asCompatibleSubstituteFor("postgres"));
     @DynamicPropertySource static void database(DynamicPropertyRegistry properties) {
+        STORAGE.configure(properties);
         properties.add("spring.datasource.url", DATABASE::getJdbcUrl);
         properties.add("spring.datasource.username", DATABASE::getUsername);
         properties.add("spring.datasource.password", DATABASE::getPassword);
@@ -229,6 +234,7 @@ class KnowledgeBaseIT {
         var builder = new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java").toString(), "-jar", Path.of("target/medical-rag-backend-0.1.0-SNAPSHOT.jar").toAbsolutePath().toString());
         builder.environment().putAll(Map.of("SERVER_PORT", Integer.toString(serverPort), "SPRING_DATASOURCE_URL", DATABASE.getJdbcUrl(),
                 "SPRING_DATASOURCE_USERNAME", DATABASE.getUsername(), "SPRING_DATASOURCE_PASSWORD", DATABASE.getPassword(), "SESSION_COOKIE_SECURE", "false"));
+        STORAGE.configureBootArguments(builder);
         return application.start(builder);
     }
     void awaitApplication(int serverPort, Process application) throws Exception {

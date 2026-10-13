@@ -20,6 +20,8 @@ import java.util.concurrent.TimeUnit;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.medicalrag.testutil.RestartTestApplication;
+import com.medicalrag.testutil.TestStorageRoot;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -55,6 +57,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import(AuthIT.PrivateProbe.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class AuthIT {
+    private static final TestStorageRoot STORAGE = TestStorageRoot.create();
+    @AfterAll static void releaseStorage() throws Exception { STORAGE.close(); }
     // Test-only credentials, never a product default or written to the user's database.
     private static final String PASSWORD = "A2-Integration-Password-2026";
     @Container
@@ -63,6 +67,7 @@ class AuthIT {
 
     @DynamicPropertySource
     static void databaseProperties(DynamicPropertyRegistry registry) {
+        STORAGE.configure(registry);
         registry.add("spring.datasource.url", DATABASE::getJdbcUrl);
         registry.add("spring.datasource.username", DATABASE::getUsername);
         registry.add("spring.datasource.password", DATABASE::getPassword);
@@ -283,6 +288,7 @@ class AuthIT {
                 "DB_PORT", String.valueOf(DATABASE.getFirstMappedPort()), "DB_NAME", DATABASE.getDatabaseName(),
                 "DB_USERNAME", DATABASE.getUsername(), "DB_PASSWORD", DATABASE.getPassword(),
                 "SESSION_COOKIE_SECURE", String.valueOf(secure)));
+        STORAGE.configureBootArguments(builder);
         return application.start(builder);
     }
 
