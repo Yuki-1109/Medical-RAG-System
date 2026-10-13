@@ -1,7 +1,51 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import StartupView from './views/StartupView.vue'
+import LoginView from './views/LoginView.vue'
+import SetupView from './views/SetupView.vue'
+import ConnectionView from './views/ConnectionView.vue'
+import HomeView from './views/HomeView.vue'
+import NotFoundView from './views/NotFoundView.vue'
+import MainLayout from './layouts/MainLayout.vue'
+import { auth, expireAuthentication, resolveAuthentication } from './auth/state'
+import { safeDestination } from './auth/redirect'
+import { onUnauthorized } from './api/client'
 
 export const router = createRouter({
   history: createWebHistory(),
-  routes: [{ path: '/', component: StartupView }],
+  routes: [
+    { path: '/', name: 'entry', component: ConnectionView },
+    { path: '/setup', name: 'setup', component: SetupView, meta: { guestOnly: true } },
+    { path: '/login', name: 'login', component: LoginView, meta: { guestOnly: true } },
+    { path: '/connection', name: 'connection', component: ConnectionView },
+    { path: '/health', name: 'public-health', component: StartupView },
+    { path: '/app', component: MainLayout, meta: { requiresAuth: true }, children: [
+      { path: '', name: 'home', component: HomeView, meta: { title: '系统首页' } },
+      { path: 'health', name: 'health', component: StartupView, meta: { title: '服务检查' } },
+      { path: ':pathMatch(.*)*', component: NotFoundView },
+    ] },
+    { path: '/:pathMatch(.*)*', component: NotFoundView },
+  ],
+})
+
+router.beforeEach(async (to) => {
+  if (['connection', 'public-health'].includes(String(to.name))) return true
+  try {
+    await resolveAuthentication()
+  } catch {
+    return { name: 'connection', query: { redirect: safeDestination(to.path) } }
+  }
+  if (!auth.initialized) return to.name === 'setup' ? true : { name: 'setup' }
+  if (!auth.user) {
+    return to.name === 'login' ? true : { name: 'login', query: { redirect: safeDestination(to.path) } }
+  }
+  if (to.name === 'entry' || to.meta.guestOnly) return safeDestination(to.query.redirect)
+  return true
+})
+
+onUnauthorized(() => {
+  if (!auth.user) return
+  expireAuthentication()
+  if (router.currentRoute.value.meta.requiresAuth) {
+    void router.replace({ name: 'login', query: { redirect: safeDestination(router.currentRoute.value.path) } })
+  }
 })

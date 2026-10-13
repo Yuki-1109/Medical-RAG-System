@@ -38,7 +38,7 @@ onMounted(check)
         <h1>医疗 RAG 系统 · 启动检查</h1>
         <p class="subtitle">A1 工程与数据库：检查本机服务是否实际可用。</p>
       </div>
-      <el-tag effect="plain">开发阶段 A1</el-tag>
+      <el-tag effect="plain">服务诊断</el-tag>
     </header>
 
     <el-card shadow="never" class="status-card">
@@ -74,10 +74,11 @@ onMounted(check)
     </el-card>
 
     <el-alert
-      title="当前仅完成工程基础。管理员登录、知识库、文件上传及 RAG 问答将在后续任务逐步开发。"
+      title="此页只展示本机服务状态。管理员登录已可使用；知识库、资料上传及 RAG 问答仍待开发。"
       type="info"
       :closable="false"
     />
+    <router-link to="/app" class="subtle-link">返回系统</router-link>
     <footer>资料管理与辅助查询工具 · 按需求文档分阶段开发</footer>
   </main>
 </template>

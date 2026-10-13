@@ -11,7 +11,7 @@
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview --host 127.0.0.1",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "node e2e/run-isolated.mjs"
   },
   "dependencies": {
     "element-plus": "2.14.7",

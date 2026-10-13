@@ -7,7 +7,8 @@ export default defineConfig({
   workers: 1,
   use: {
     baseURL: `http://127.0.0.1:${port}`,
-    trace: 'retain-on-failure',
+    // Auth flows carry passwords/CSRF/Cookie. Do not save network traces or videos.
+    trace: 'off',
     launchOptions: {
       executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
     },
@@ -15,6 +16,6 @@ export default defineConfig({
   webServer: {
     command: 'npm run dev',
     url: `http://127.0.0.1:${port}`,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
   },
 })

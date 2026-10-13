@@ -2,9 +2,9 @@
 
 医疗文献与医学图片知识库 RAG 系统，本科毕业设计，面向 Windows 本地部署。
 
-**当前后端交付：A2 管理员创建与认证；前端保持 A1 启动检查页。** 可以创建唯一的本地管理员，通过后端 API 登录、查看当前账号和退出；Vue 页面仍实时检查 Spring Boot、PostgreSQL、pgvector 和 Flyway。没有前端登录/初始化页面，也尚未开发知识库、资料上传或问答。本地运行不需要任何模型 API Key。
+**当前交付：A3 首次使用、登录与中文页面框架。** 浏览器会根据后端真实状态进入首次初始化、登录或已登录首页；支持刷新恢复、退出、失效提示和路由守卫。已有管理员直接登录，服务检查继续可用。知识库、资料上传和问答仍待开发，不显示虚构业务数据。本地运行不需要任何模型 API Key。
 
-A2 的接口格式、Session/CSRF 使用和 Windows 手动验收见 [管理员认证操作](docs/A2-管理员认证操作.md)，实际测试记录见 [A2 验证记录](docs/A2-验证记录.md)。用户已报告 A1 在 Windows 本机成功启动；A2 的 Windows 验收仍需单独进行。
+A2 的接口格式和 Session/CSRF 说明见 [管理员认证操作](docs/A2-管理员认证操作.md)。用户已确认 A1/A2 在 Windows 的核心验收；A3 新界面需单独验收，步骤见 [A3 前端运行与验收](docs/A3-前端运行与验收.md)，实际测试记录见 [A3 验证记录](docs/A3-验证记录.md)。已有 mianmian 账号无需重建，保留原数据库与数据卷。
 
 需求依据：[完整需求规格说明 v1.0](医疗%20RAG%20系统｜完整需求规格说明%20v1.0.md)、[分阶段开发计划](docs/分阶段开发计划-v1.0.md)。后续按小任务开发，每次验收后等待用户确认。
 
@@ -31,13 +31,13 @@ Java 应为 21，Node 推荐 24；Docker 输出须包含 Client 和 Server。不
 
 ## 2. 下载代码与准备数据库
 
-已存在仓库时不要重新创建另一个仓库；先把 A1 分支/提交同步到本机。首次下载示例：
+已存在仓库时保留原 `.env` 和数据库，不重新创建另一个仓库；先同步当前任务分支。首次下载示例：
 
 ```powershell
 git clone https://github.com/Yuki-1109/Medical-RAG-System.git
 cd Medical-RAG-System
-# A2 分支推送后，在合并 main 前使用：
-git switch codex/a2-admin-authentication
+# A3 分支推送后，在合并 main 前使用：
+git switch codex/a3-authentication-ui
 ```
 
 在仓库根目录运行：
@@ -87,7 +87,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Start-Frontend.ps1
 
 **[http://127.0.0.1:5173](http://127.0.0.1:5173)**
 
-正常页面标题为“医疗 RAG 系统 · 启动检查”，后端、PostgreSQL、pgvector、Flyway 四项显示“正常”，并显示真实数据库/扩展/迁移版本与检查时间。点击“重新检查”会重新请求后端，没有写死的健康结果。
+已有管理员时进入登录页，输入本机已有账号及密码；你的 mianmian 账号保持原样。登录后进入中文首页，显示真实账号、创建时间和可用的服务检查入口。未初始化的全新安装才显示创建管理员页，创建后仍需登录。
+
+未登录直接输入 `/app` 或 `/app/health` 会转到登录页；刷新会重新询问后端当前账号。登录成功重新获取 CSRF，退出及会话失效会清理前端登录状态；不把密码、Cookie 或 CSRF 存到浏览器本地存储。
+
+A1 的启动检查页保留在 [http://127.0.0.1:5173/health](http://127.0.0.1:5173/health)，登录后也可通过左侧“服务检查”进入。后端、PostgreSQL、pgvector、Flyway 四项应显示“正常”。尚未开发的导航均标注待开发且不可点击，不提供假业务页面。
 
 通信流程：浏览器 `/api/health` → Vite 本机代理 → Spring Boot → 实际 PostgreSQL 查询。数据库检查失败返回 HTTP 503；前端会展示真实组件状态。后端未启动时提示连接失败。
 
@@ -101,7 +105,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Start-Frontend.ps1
 docker stop medical-rag-postgres
 ```
 
-停止数据库后点击网页“重新检查”，应显示后端仍响应、数据库异常、扩展和迁移无法检查；不能仍显示全部正常。再次运行初始化脚本启动原数据库后，重新检查应恢复正常。
+停止数据库后在 `/health` 页点击“重新检查”，应显示后端仍响应、数据库异常、扩展和迁移无法检查；不能仍显示全部正常。再次运行初始化脚本启动原数据库后，重新检查应恢复正常。不要删除数据卷或清空 users 表。
 
 如果启动时数据库不可用，Flyway 初始化会失败，后端不会成功启动。先恢复数据库，再启动后端。
 
@@ -138,7 +142,7 @@ cd ..\backend
 
 普通后端 verify 执行单元测试并打包；**不代表数据库集成测试已执行**。带 `-Pintegration-test` 才会运行真实数据库健康、迁移幂等、扩展缺失、迁移记录缺失和 A2 认证测试；其中包含 8 路并发初始化、真实 HTTP Session/CSRF、退出失效和 jar 进程重启后登录。测试使用独立临时数据库，不创建/删除用户本机管理员。没有 Docker 时该命令应失败，不把跳过当成功。
 
-浏览器测试需要用户数据库与后端已启动：
+浏览器测试使用自动隔离的真实数据库与后端，不使用用户数据库。先执行上述 Maven verify 生成 jar，并确保本机 Docker 已就绪：
 
 ```powershell
 cd frontend
@@ -146,7 +150,9 @@ npx.cmd playwright install chromium
 npm.cmd run test:e2e
 ```
 
-测试会启动/复用 Vite，使用实际健康 API；另一个测试明确模拟浏览器连接失败并验证恢复。测试素材/桩只属于自动测试，不用于页面生产数据。实际本次运行记录见 [A1 验证记录](docs/A1-验证记录.md)。
+测试启动器分配独立 PostgreSQL 容器、后端及 Vite 端口；只在该数据库首次创建测试管理员，结束后只清理本次临时容器及匿名卷。现有 medical-rag-postgres / medical-rag-pgdata 保持不变，不要绕过启动器直接执行认证用例。
+
+覆盖真实创建→登录→刷新→退出→再次登录、已有账号、私有路由、错误密码、服务断开、失效、HttpOnly、响应字段及笔记本布局。独立测试后端临时将闲置超时设为 1 分钟，实际等待 65 秒验证过期；生产仍为 A2 的 30 分钟。认证网络 trace 禁用，日志与测试截图不提交。测试数据仅属于隔离用例，不用于生产界面。
 
 Linux 可在 backend 执行 `./mvnw verify` / `./mvnw spring-boot:run`，前端使用 npm 相同命令；后端与 Vite 都读取仓库根目录 `.env`。PowerShell 启动脚本面向 Windows，不代表已在 Windows 实机执行。
 
@@ -156,11 +162,11 @@ Linux 可在 backend 执行 `./mvnw verify` / `./mvnw spring-boot:run`，前端�
 - Spring AI 官方说明 `1.1.x` 对应 Boot `3.5.x`；A1 不加载模型依赖，不需要 Key。后续 B 再选择同系列稳定补丁。
 - Maven 的数据库/Flyway/测试库版本由 Spring Boot BOM 统一管理，前端精确版本及 package-lock 固定。依赖及许可证说明见 [A1 依赖说明](docs/A1-依赖说明.md)。项目开源许可证将在公开发布前确认，本次不擅自替用户选择代码授权。
 
-代码提交保存在当前仓库独立 A2 分支，基于已推送的 A1 提交；原 A1 分支保留。A2 获准同步时可执行（不发布 Release）：
+代码提交保存在当前仓库独立 A3 分支，基于已推送的 A2 提交；原 A1/A2 分支保留。A3 获准同步时可执行（不发布 Release）：
 
 ```powershell
 git status
-git push -u origin codex/a2-admin-authentication
+git push -u origin codex/a3-authentication-ui
 ```
 
-分支推送后可在 GitHub 发起 Pull Request，保留基于 A1 的依赖关系，确认审查后再合并；另一台电脑 `git fetch origin` 后切换该分支即可。不要提交 `.env`、上传原件、数据库卷、私有日志或备份。本次完成 A2 后停止，前端登录与初始化页面在用户确认 A3 后开发。
+分支推送后可在 GitHub 发起 Pull Request，保留基于 A2 的依赖关系，确认审查后再合并；另一台电脑 `git fetch origin` 后切换该分支即可。不要提交 `.env`、上传原件、数据库卷、私有日志或备份。本次完成 A3 后停止，知识库 CRUD 需用户确认 A4 后开发。
