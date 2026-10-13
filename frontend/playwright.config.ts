@@ -13,7 +13,7 @@ export default defineConfig({
       executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
     },
   },
-  webServer: {
+  webServer: process.env.MEDICAL_RAG_E2E_FRONTEND_OWNED === '1' ? undefined : {
     command: process.env.MEDICAL_RAG_E2E_PRODUCTION === '1' ? `npm run preview -- --port ${port} --strictPort` : 'npm run dev',
     url: `http://127.0.0.1:${port}`,
     reuseExistingServer: false,

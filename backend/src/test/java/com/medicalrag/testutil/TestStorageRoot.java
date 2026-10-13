@@ -17,6 +17,9 @@ public final class TestStorageRoot implements AutoCloseable {
     public String value() { return root.toString(); }
     public Path path() { return root; }
     public void configure(DynamicPropertyRegistry registry) {
+        registry.add("app.image.max-width", () -> 8192);
+        registry.add("app.image.max-height", () -> 8192);
+        registry.add("app.image.max-pixels", () -> 16000000L);
         registry.add("app.storage.root", this::value);
         registry.add("app.storage.max-pdf-bytes", () -> 52428800L);
         registry.add("app.storage.max-image-bytes", () -> 20971520L);
@@ -28,6 +31,9 @@ public final class TestStorageRoot implements AutoCloseable {
     }
     public void configureBootArguments(ProcessBuilder builder) {
         configureProcess(builder);
+        builder.command().add("--app.image.max-width=8192");
+        builder.command().add("--app.image.max-height=8192");
+        builder.command().add("--app.image.max-pixels=16000000");
         // Command-line properties also override any inherited JSON/profile root.
         builder.command().add("--app.storage.root=" + value());
         builder.command().add("--app.storage.max-pdf-bytes=52428800");

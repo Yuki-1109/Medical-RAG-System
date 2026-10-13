@@ -57,7 +57,7 @@ test.describe.serial('A4 knowledge bases with real isolated PostgreSQL', () => {
     await page.reload()
     console.log('A4：详情页已刷新')
     await expect(page.locator('.current-library-bar')).toContainText(`ID：${k1}`)
-    await expect(page.getByText('当前知识库为空，可以进入文献管理上传 PDF；图片功能待开发。')).toBeVisible()
+    await expect(page.getByText('当前知识库为空，可以上传 PDF 或 JPG/PNG 原件。')).toBeVisible()
     await page.locator('.current-library-bar .el-select').click()
     await expect(page.getByRole('option', { name: 'A4 K2', exact: true })).toBeVisible()
     await page.screenshot({ path: test.info().outputPath('a4-library-switch.png'), fullPage: true, animations: 'disabled' })
@@ -174,6 +174,6 @@ test.describe.serial('A4 knowledge bases with real isolated PostgreSQL', () => {
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
       await page.getByRole('button', { name: '取消', exact: true }).click()
     }
-    await expect(page.locator('.pending-navigation')).toHaveCount(5)
+    await expect(page.locator('.pending-navigation')).toHaveCount(4)
   })
 })

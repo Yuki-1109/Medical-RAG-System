@@ -39,7 +39,7 @@ export async function updateKnowledgeBase(id: string, input: KnowledgeBaseInput)
   return base(await mutate(path(id), JSON.stringify(input), 'application/json', true, 'PATCH'))
 }
 export async function deleteKnowledgeBase(id: string, expected?: KnowledgeBase): Promise<void> {
-  const counts = expected ? `?expectedDocumentCount=${expected.documentCount}&expectedPendingCleanupCount=${expected.pendingCleanupCount ?? 0}` : ''
+  const counts = expected ? `?expectedDocumentCount=${expected.documentCount}&expectedImageCount=${expected.imageCount}&expectedPendingCleanupCount=${expected.pendingCleanupCount ?? 0}` : ''
   await mutate(path(id) + counts, undefined, 'application/json', true, 'DELETE')
 }
 export function validateKnowledgeBase(input: KnowledgeBaseInput): string {

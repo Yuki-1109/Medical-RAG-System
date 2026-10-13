@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
+@org.springframework.core.annotation.Order(0)
 @Service
 public class DocumentService implements KnowledgeBaseMaterialCleaner {
     private final DocumentRepository documents;

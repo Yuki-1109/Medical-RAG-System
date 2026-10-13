@@ -13,8 +13,8 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 @RestControllerAdvice
 public class MultipartErrors {
     @ExceptionHandler(MaxUploadSizeExceededException.class)
-    ResponseEntity<ApiError> tooLarge() {
+    ResponseEntity<ApiError> tooLarge(jakarta.servlet.http.HttpServletRequest request) {
         return ResponseEntity.status(413).header("Cache-Control","no-store")
-                .body(new ApiError("PDF_TOO_LARGE","PDF 或上传请求超过本机大小限制，请缩小文件后重试",Instant.now()));
+                .body(new ApiError(request.getRequestURI().endsWith("/images") ? "IMAGE_TOO_LARGE" : "PDF_TOO_LARGE","文件或上传请求超过本机大小限制，请缩小文件后重试",Instant.now()));
     }
 }

@@ -20,7 +20,7 @@ class DocumentMigrationIT {
         String hash=new BCryptPasswordEncoder(12).encode("Synthetic-Migration-Password-2026");
         long owner=jdbc.queryForObject("INSERT INTO users (username,password_hash) VALUES ('mianmian',?) RETURNING id",Long.class,hash);
         long base=jdbc.queryForObject("INSERT INTO knowledge_bases (owner_id,name,description) VALUES (?, '原有研究库','保留简介') RETURNING id",Long.class,owner);
-        var flyway=Flyway.configure().dataSource(source).cleanDisabled(true).load();
+        var flyway=Flyway.configure().dataSource(source).target("4").cleanDisabled(true).load();
         assertThat(flyway.migrate().migrationsExecuted).isEqualTo(1); assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("4");
         assertThat(jdbc.queryForList("SELECT version,checksum FROM flyway_schema_history WHERE version<>'4' ORDER BY installed_rank")).isEqualTo(history);
         assertThat(jdbc.queryForObject("SELECT password_hash FROM users WHERE id=?",String.class,owner)).isEqualTo(hash);

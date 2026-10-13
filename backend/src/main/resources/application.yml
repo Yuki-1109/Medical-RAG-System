@@ -38,3 +38,7 @@ app:
     root: ${APP_STORAGE_ROOT:data/originals}
     max-pdf-bytes: ${APP_STORAGE_MAX_PDF_BYTES:52428800}
     max-image-bytes: ${APP_STORAGE_MAX_IMAGE_BYTES:20971520}
+  image:
+    max-width: ${APP_IMAGE_MAX_WIDTH:8192}
+    max-height: ${APP_IMAGE_MAX_HEIGHT:8192}
+    max-pixels: ${APP_IMAGE_MAX_PIXELS:16000000}

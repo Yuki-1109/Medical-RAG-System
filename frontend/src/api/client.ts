@@ -9,6 +9,7 @@ interface RequestOptions extends RequestInit {
   acceptedStatuses?: number[]
   notifyUnauthorized?: boolean
   responseType?: 'json' | 'blob'
+  mediaTypes?: string[]
 }
 
 let unauthorizedHandler: (() => void) | undefined
@@ -22,9 +23,9 @@ export function clearCsrf() { csrfToken = null; csrfPending = null }
 
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   if (!path.startsWith('/api/') || path.includes('://')) throw new Error('API 请求必须使用本机相对地址')
-  const { acceptedStatuses = [200, 201, 204], notifyUnauthorized = true, responseType = 'json', ...init } = options
+  const { acceptedStatuses = [200, 201, 204], notifyUnauthorized = true, responseType = 'json', mediaTypes = ['application/pdf'], ...init } = options
   const headers = new Headers(init.headers)
-  headers.set('Accept', responseType === 'blob' ? 'application/pdf' : 'application/json')
+  headers.set('Accept', responseType === 'blob' ? mediaTypes.join(', ') : 'application/json')
   let response: Response
   try {
     response = await fetch(path, {
@@ -35,18 +36,18 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   } catch {
     throw new ApiError(0, 'NETWORK_UNAVAILABLE', '无法连接后端或请求超时，请确认后端已启动，然后重新检查。')
   }
-  return decode<T>(response, acceptedStatuses, notifyUnauthorized, responseType)
+  return decode<T>(response, acceptedStatuses, notifyUnauthorized, responseType, mediaTypes)
 }
 
-async function decode<T>(response: Response, acceptedStatuses = [200, 201, 204], notifyUnauthorized = true, responseType: 'json' | 'blob' = 'json'): Promise<T> {
+async function decode<T>(response: Response, acceptedStatuses = [200, 201, 204], notifyUnauthorized = true, responseType: 'json' | 'blob' = 'json', mediaTypes = ['application/pdf']): Promise<T> {
   if (acceptedStatuses.includes(response.status) && responseType === 'blob') {
-    if (!response.headers.get('Content-Type')?.toLowerCase().startsWith('application/pdf')) {
-      throw new ApiError(0, 'INVALID_RESPONSE', '后端未返回有效的 PDF 原件，请重新检查。')
+    if (!mediaTypes.includes(response.headers.get('Content-Type')?.split(';')[0]?.trim().toLowerCase() ?? '')) {
+      throw new ApiError(0, 'INVALID_RESPONSE', '后端未返回有效的资料原件，请重新检查。')
     }
     let original: Blob
     try { original = await response.blob() }
-    catch { throw new ApiError(0, 'NETWORK_UNAVAILABLE', 'PDF 原件传输中断，请检查后端和连接后重新加载。') }
-    if (!original.size) throw new ApiError(0, 'INVALID_RESPONSE', 'PDF 原件为空，请检查存储状态。')
+    catch { throw new ApiError(0, 'NETWORK_UNAVAILABLE', '资料原件传输中断，请检查后端和连接后重新加载。') }
+    if (!original.size) throw new ApiError(0, 'INVALID_RESPONSE', '资料原件为空，请检查存储状态。')
     activityHandler?.()
     return original as T
   }

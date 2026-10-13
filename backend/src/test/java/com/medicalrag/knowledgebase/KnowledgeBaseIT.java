@@ -190,8 +190,8 @@ class KnowledgeBaseIT {
         long id = jdbc.queryForObject("INSERT INTO knowledge_bases (owner_id,name) VALUES (?, '保留') RETURNING id", Long.class, owner);
         // Documents are supported in A6. The next, unmatched image schema must still
         // fail closed instead of reporting a fake image count or bypassing cleanup.
-        jdbc.execute("CREATE TABLE medical_images (id BIGINT PRIMARY KEY, knowledge_base_id BIGINT REFERENCES knowledge_bases(id) ON DELETE RESTRICT)");
-        jdbc.update("INSERT INTO medical_images VALUES (1, ?)", id);
+        jdbc.execute("CREATE TABLE document_chunks (id BIGINT PRIMARY KEY, knowledge_base_id BIGINT REFERENCES knowledge_bases(id) ON DELETE RESTRICT)");
+        jdbc.update("INSERT INTO document_chunks VALUES (1, ?)", id);
         mvc.perform(delete("/api/knowledge-bases/" + id).with(csrf())).andExpect(status().isConflict());
         mvc.perform(get("/api/knowledge-bases/" + id)).andExpect(status().isConflict());
         assertThat(jdbc.queryForObject("SELECT count(*) FROM knowledge_bases", Integer.class)).isEqualTo(1);

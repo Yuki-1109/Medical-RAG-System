@@ -5,7 +5,7 @@ import { clearCurrentKnowledgeBase } from './context'
 export async function confirmDeleteKnowledgeBase(base: KnowledgeBase): Promise<boolean> {
   // Refresh the true impact before asking. This GET never deletes anything.
   const latest = await getKnowledgeBase(base.id)
-  const impact = latest.documentCount || latest.pendingCleanupCount
+  const impact = latest.documentCount || latest.imageCount || latest.pendingCleanupCount
     ? `包含 ${latest.documentCount} 篇有效文献、${latest.pendingCleanupCount ?? 0} 条待清理记录和 ${latest.imageCount} 张图片；确认后将使资料不可访问并清理原件，无法恢复。`
     : '当前库没有文献或图片，删除后无法恢复。'
   try {

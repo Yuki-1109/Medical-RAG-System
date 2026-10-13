@@ -53,6 +53,10 @@ public class KnowledgeBaseService {
         deletion.getObject().delete(id,owner,expectedDocuments,expectedPending);
     }
 
+    public void delete(long id,long owner,Long expectedDocuments,Long expectedImages,Long expectedPending) {
+        deletion.getObject().delete(id,owner,expectedDocuments,expectedImages,expectedPending);
+    }
+
     public static long parseId(String value) {
         try {
             if (!value.matches("[1-9][0-9]{0,18}")) throw new NumberFormatException();

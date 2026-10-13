@@ -46,8 +46,8 @@ public class KnowledgeBaseController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(Principal principal, @PathVariable String id,
-            @RequestParam(required=false) Long expectedDocumentCount, @RequestParam(required=false) Long expectedPendingCleanupCount) {
-        service.delete(KnowledgeBaseService.parseId(id), owner(principal),expectedDocumentCount,expectedPendingCleanupCount);
+            @RequestParam(required=false) Long expectedImageCount, @RequestParam(required=false) Long expectedDocumentCount, @RequestParam(required=false) Long expectedPendingCleanupCount) {
+        service.delete(KnowledgeBaseService.parseId(id), owner(principal),expectedDocumentCount,expectedImageCount,expectedPendingCleanupCount);
         return ResponseEntity.noContent().header("Cache-Control", "no-store").build();
     }
 

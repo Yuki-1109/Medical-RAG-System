@@ -12,11 +12,12 @@ public class KnowledgeBaseRepository {
     private static final RowMapper<KnowledgeBase> ROW = (row, index) -> new KnowledgeBase(
             Long.toString(row.getLong("id")), row.getString("name"), row.getString("description"),
             row.getBoolean("is_demo"), row.getTimestamp("created_at").toInstant(),
-            row.getTimestamp("updated_at").toInstant(), row.getLong("document_count"), 0,
+            row.getTimestamp("updated_at").toInstant(), row.getLong("document_count"), row.getLong("image_count"),
             row.getBoolean("deletion_pending"), row.getLong("pending_cleanup_count"));
     private static final String COUNTS = """
             , (SELECT count(*) FROM documents d WHERE d.knowledge_base_id=knowledge_bases.id AND d.lifecycle_status='ACTIVE') AS document_count
-            , (SELECT count(*) FROM documents d WHERE d.knowledge_base_id=knowledge_bases.id AND d.lifecycle_status<>'ACTIVE') AS pending_cleanup_count
+            , (SELECT count(*) FROM medical_images i WHERE i.knowledge_base_id=knowledge_bases.id AND i.lifecycle_status='ACTIVE') AS image_count
+            , ((SELECT count(*) FROM documents d WHERE d.knowledge_base_id=knowledge_bases.id AND d.lifecycle_status<>'ACTIVE') + (SELECT count(*) FROM medical_images i WHERE i.knowledge_base_id=knowledge_bases.id AND i.lifecycle_status<>'ACTIVE')) AS pending_cleanup_count
             """;
 
     public KnowledgeBaseRepository(JdbcTemplate jdbc) { this.jdbc = jdbc; }
@@ -26,12 +27,20 @@ public class KnowledgeBaseRepository {
     }
 
     public Optional<KnowledgeBase> find(long id, long owner, boolean lock) {
-        return jdbc.query("SELECT *" + COUNTS + " FROM knowledge_bases WHERE id = ? AND owner_id = ?" + (lock ? " FOR UPDATE OF knowledge_bases" : ""),
+        if (lock) {
+            // READ COMMITTED takes a snapshot per statement. A SELECT containing
+            // counts AND FOR UPDATE can retain counts from before it waited for an
+            // upload to commit. Acquire first, then query the true impact afresh.
+            var owned=jdbc.query("SELECT id FROM knowledge_bases WHERE id=? AND owner_id=? FOR UPDATE",
+                    (row,index) -> row.getLong("id"),id,owner);
+            if (owned.isEmpty()) return Optional.empty();
+        }
+        return jdbc.query("SELECT *" + COUNTS + " FROM knowledge_bases WHERE id = ? AND owner_id = ?",
                 ROW, id, owner).stream().findFirst();
     }
 
     public KnowledgeBase create(long owner, String name, String description) {
-        return jdbc.query("INSERT INTO knowledge_bases (owner_id,name,description) VALUES (?,?,?) RETURNING *, 0 AS document_count, 0 AS pending_cleanup_count",
+        return jdbc.query("INSERT INTO knowledge_bases (owner_id,name,description) VALUES (?,?,?) RETURNING *, 0 AS document_count, 0 AS image_count, 0 AS pending_cleanup_count",
                 ROW, owner, name, description).getFirst();
     }
 

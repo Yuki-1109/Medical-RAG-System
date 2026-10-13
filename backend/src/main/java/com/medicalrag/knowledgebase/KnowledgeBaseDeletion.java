@@ -21,10 +21,14 @@ public class KnowledgeBaseDeletion {
         delete(id,owner,null,null);
     }
     public void delete(long id,long owner,Long expectedDocuments,Long expectedPending) {
+        delete(id,owner,expectedDocuments,null,expectedPending);
+    }
+    public void delete(long id,long owner,Long expectedDocuments,Long expectedImages,Long expectedPending) {
         transactions.executeWithoutResult(tx -> {
             KnowledgeBase current=bases.find(id, owner, true).orElseThrow(KnowledgeBaseException::missing);
             materials.requireSupportedStage();
             if ((expectedDocuments!=null && expectedDocuments!=current.documentCount())
+                    || (expectedImages!=null && expectedImages!=current.imageCount())
                     || (expectedPending!=null && expectedPending!=current.pendingCleanupCount())) {
                 throw new KnowledgeBaseException(409,"KNOWLEDGE_BASE_CHANGED","知识库资料数量已变化，本次未删除，请刷新并再次确认影响范围");
             }

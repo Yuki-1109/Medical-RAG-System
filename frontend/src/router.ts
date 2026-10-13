@@ -28,6 +28,8 @@ export const router = createRouter({
       { path: 'knowledge-bases/:id', name: 'knowledge-base', component: KnowledgeBaseView, meta: { title: '知识库' } },
       { path: 'knowledge-bases/:id/documents', name: 'documents', component: DocumentsView, meta: { title: '文献管理' } },
       { path: 'knowledge-bases/:id/documents/:documentId', name: 'document-preview', component: () => import('./views/DocumentPreviewView.vue'), meta: { title: 'PDF 原文预览' } },
+      { path: 'knowledge-bases/:id/images', name: 'images', component: () => import('./views/ImagesView.vue'), meta: { title: '医学图片' } },
+      { path: 'knowledge-bases/:id/images/:imageId', name: 'image-detail', component: () => import('./views/ImageDetailView.vue'), meta: { title: '图片原图与人工信息' } },
       { path: ':pathMatch(.*)*', component: NotFoundView },
     ] },
     { path: '/:pathMatch(.*)*', component: NotFoundView },

@@ -67,7 +67,7 @@ class FileStorageIT {
         assertThatThrownBy(() -> files.copyTo(Long.toString(k2), receipt, OutputStream.nullOutputStream())).isInstanceOf(StorageException.class);
         assertThatThrownBy(() -> files.delete(Long.toString(k2), receipt)).isInstanceOf(StorageException.class);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM documents", Integer.class)).isZero();
-        assertThat(jdbc.queryForObject("SELECT to_regclass('public.medical_images') IS NULL", Boolean.class)).isTrue();
+        assertThat(jdbc.queryForObject("SELECT count(*)=0 FROM medical_images", Boolean.class)).isTrue();
         assertThat(knowledgeBases.detail(k1, owner).documentCount()).isZero();
         assertThat(knowledgeBases.detail(k1, owner).imageCount()).isZero();
         files.delete(Long.toString(k1), receipt);

@@ -61,7 +61,7 @@ onMounted(load)
         <div class="library-card-actions"><el-button type="primary" @click="router.push(`/app/knowledge-bases/${base.id}`)">进入知识库</el-button><el-button @click="openForm(base)">编辑</el-button><el-button type="danger" plain :loading="deleting === base.id" :disabled="!!deleting && deleting !== base.id" @click="remove(base)">删除</el-button></div>
       </el-card>
     </div>
-    <p class="library-stage-note">文献数量来自当前知识库的有效记录；已支持 PDF 原件管理。图片、文字处理与问答仍待开发。</p>
+    <p class="library-stage-note">文献及图片数量来自当前知识库的有效记录；已支持 PDF 与 JPG/PNG 原件管理及人工图片信息。文字处理、疾病分类、标注与问答仍待开发。</p>
     <KnowledgeBaseForm :open="formOpen" :editing="editing" :busy="saving" :error="formError" @close="formOpen = false" @save="save" />
   </main>
 </template>
