@@ -5,9 +5,9 @@ import java.net.http.*;
 import java.nio.file.*;
 import java.time.Duration;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.medicalrag.testutil.RestartTestApplication;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -203,19 +203,17 @@ class KnowledgeBaseIT {
     @Test void librariesAndAdministratorSurviveActualJarRestartWithoutRepeatingMigration() throws Exception {
         int restartPort;
         try (var socket = new ServerSocket(0)) { restartPort = socket.getLocalPort(); }
-        Path log = Files.createTempFile(Path.of("target"), "knowledge-base-restart-", ".log");
-        Process application = null;
         String k1, k2;
-        try {
-            application = startApplication(restartPort, log);
-            awaitApplication(restartPort, application);
+        try (var application = new RestartTestApplication("knowledge-base-restart-")) {
+            Process child = startApplication(restartPort, application);
+            awaitApplication(restartPort, child);
             try (Client client = signedIn(restartPort)) {
                 k1 = create(client, "K1 重启"); k2 = create(client, "K2 重启");
                 assertThat(client.write("PATCH", "/api/knowledge-bases/" + k1, input("重启后仍在", "持久化简介")).statusCode()).isEqualTo(200);
             }
-            stopApplication(application);
-            application = startApplication(restartPort, log);
-            awaitApplication(restartPort, application);
+            application.stop();
+            child = startApplication(restartPort, application);
+            awaitApplication(restartPort, child);
             try (Client client = new Client(restartPort)) { assertThat(client.get("/api/auth/me").statusCode()).isEqualTo(401); }
             try (Client client = signedIn(restartPort)) {
                 assertThat(body(client.get("/api/knowledge-bases/" + k1)).get("name").asText()).isEqualTo("重启后仍在");
@@ -225,13 +223,13 @@ class KnowledgeBaseIT {
                 assertThat(body(client.get("/api/knowledge-bases"))).hasSize(2);
             }
             assertThat(jdbc.queryForObject("SELECT count(*) FROM flyway_schema_history WHERE version='3' AND success", Integer.class)).isEqualTo(1);
-        } finally { if (application != null) stopApplication(application); Files.deleteIfExists(log); }
+        }
     }
-    Process startApplication(int serverPort, Path log) throws Exception {
+    Process startApplication(int serverPort, RestartTestApplication application) throws Exception {
         var builder = new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java").toString(), "-jar", Path.of("target/medical-rag-backend-0.1.0-SNAPSHOT.jar").toAbsolutePath().toString());
         builder.environment().putAll(Map.of("SERVER_PORT", Integer.toString(serverPort), "SPRING_DATASOURCE_URL", DATABASE.getJdbcUrl(),
                 "SPRING_DATASOURCE_USERNAME", DATABASE.getUsername(), "SPRING_DATASOURCE_PASSWORD", DATABASE.getPassword(), "SESSION_COOKIE_SECURE", "false"));
-        return builder.redirectErrorStream(true).redirectOutput(ProcessBuilder.Redirect.appendTo(log.toFile())).start();
+        return application.start(builder);
     }
     void awaitApplication(int serverPort, Process application) throws Exception {
         for (int i = 0; i < 100; i++) {
@@ -241,10 +239,6 @@ class KnowledgeBaseIT {
             Thread.sleep(200);
         }
         throw new IllegalStateException("Isolated restart application did not become ready");
-    }
-    void stopApplication(Process application) throws Exception {
-        application.destroy();
-        if (!application.waitFor(10, TimeUnit.SECONDS)) { application.destroyForcibly(); assertThat(application.waitFor(5, TimeUnit.SECONDS)).isTrue(); }
     }
     class Client implements AutoCloseable {
         final String base;

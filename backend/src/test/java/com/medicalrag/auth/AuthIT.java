@@ -9,7 +9,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -20,6 +19,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.medicalrag.testutil.RestartTestApplication;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -247,39 +247,35 @@ class AuthIT {
     void administratorSurvivesActualApplicationRestartAndSecureCookieSettingWorks() throws Exception {
         int restartPort;
         try (var socket = new ServerSocket(0)) { restartPort = socket.getLocalPort(); }
-        Path log = Files.createTempFile(Path.of("target"), "auth-restart-", ".log");
-        Process application = null;
-        try (ApiClient client = new ApiClient(restartPort)) {
-            application = startApplication(restartPort, false, log);
-            awaitApplication(client, application);
+        try (var application = new RestartTestApplication("auth-restart-");
+                ApiClient client = new ApiClient(restartPort)) {
+            Process child = startApplication(restartPort, false, application);
+            awaitApplication(client, child);
             String token = client.csrf();
             var created = client.setup("restartdoctor", PASSWORD, token);
             assertThat(created.statusCode()).isEqualTo(201);
             long id = json.readTree(created.body()).get("id").asLong();
             assertThat(client.login("restartdoctor", PASSWORD, token).statusCode()).isEqualTo(200);
             String oldSession = client.sessionId();
-            stopApplication(application);
-            application = startApplication(restartPort, false, log);
-            awaitApplication(client, application);
+            application.stop();
+            child = startApplication(restartPort, false, application);
+            awaitApplication(client, child);
             assertThat(client.rawCookieGet("/api/auth/me", "JSESSIONID=" + oldSession).statusCode()).isEqualTo(401);
             assertThat(json.readTree(client.get("/api/auth/setup-status").body()).get("initialized").asBoolean()).isTrue();
             assertThat(client.login("restartdoctor", PASSWORD, client.csrf()).statusCode()).isEqualTo(200);
             assertThat(json.readTree(client.get("/api/auth/me").body()).get("id").asLong()).isEqualTo(id);
             assertThat(jdbc.queryForObject("SELECT count(*) FROM users", Integer.class)).isEqualTo(1);
-            stopApplication(application);
-            application = startApplication(restartPort, true, log);
+            application.stop();
+            child = startApplication(restartPort, true, application);
             try (ApiClient secureClient = new ApiClient(restartPort)) {
-                awaitApplication(secureClient, application);
+                awaitApplication(secureClient, child);
                 assertThat(secureClient.get("/api/auth/csrf").headers().firstValue("Set-Cookie").orElseThrow())
                         .contains("Secure", "HttpOnly", "SameSite=Lax");
             }
-        } finally {
-            if (application != null) stopApplication(application);
-            Files.deleteIfExists(log);
         }
     }
 
-    private Process startApplication(int applicationPort, boolean secure, Path log) throws Exception {
+    private Process startApplication(int applicationPort, boolean secure, RestartTestApplication application) throws Exception {
         var builder = new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java").toString(),
                 "-jar", Path.of("target/medical-rag-backend-0.1.0-SNAPSHOT.jar").toAbsolutePath().toString());
         builder.environment().putAll(Map.of(
@@ -287,7 +283,7 @@ class AuthIT {
                 "DB_PORT", String.valueOf(DATABASE.getFirstMappedPort()), "DB_NAME", DATABASE.getDatabaseName(),
                 "DB_USERNAME", DATABASE.getUsername(), "DB_PASSWORD", DATABASE.getPassword(),
                 "SESSION_COOKIE_SECURE", String.valueOf(secure)));
-        return builder.redirectErrorStream(true).redirectOutput(ProcessBuilder.Redirect.appendTo(log.toFile())).start();
+        return application.start(builder);
     }
 
     private void awaitApplication(ApiClient client, Process application) throws Exception {
@@ -300,14 +296,6 @@ class AuthIT {
             Thread.sleep(100);
         }
         throw new IllegalStateException("Restart test application did not become ready");
-    }
-
-    private void stopApplication(Process application) throws Exception {
-        application.destroy();
-        if (!application.waitFor(10, TimeUnit.SECONDS)) {
-            application.destroyForcibly();
-            assertThat(application.waitFor(5, TimeUnit.SECONDS)).isTrue();
-        }
     }
 
     class ApiClient implements AutoCloseable {
