@@ -2,7 +2,9 @@
 
 医疗文献与医学图片知识库 RAG 系统，本科毕业设计，面向 Windows 本地部署。
 
-**当前交付：A1 工程与数据库。** 可以打开 Vue 页面，实时检查 Spring Boot、PostgreSQL、pgvector 和 Flyway。尚未开发登录、知识库、资料上传或问答。本地运行不需要任何模型 API Key。
+**当前后端交付：A2 管理员创建与认证；前端保持 A1 启动检查页。** 可以创建唯一的本地管理员，通过后端 API 登录、查看当前账号和退出；Vue 页面仍实时检查 Spring Boot、PostgreSQL、pgvector 和 Flyway。没有前端登录/初始化页面，也尚未开发知识库、资料上传或问答。本地运行不需要任何模型 API Key。
+
+A2 的接口格式、Session/CSRF 使用和 Windows 手动验收见 [管理员认证操作](docs/A2-管理员认证操作.md)，实际测试记录见 [A2 验证记录](docs/A2-验证记录.md)。用户已报告 A1 在 Windows 本机成功启动；A2 的 Windows 验收仍需单独进行。
 
 需求依据：[完整需求规格说明 v1.0](医疗%20RAG%20系统｜完整需求规格说明%20v1.0.md)、[分阶段开发计划](docs/分阶段开发计划-v1.0.md)。后续按小任务开发，每次验收后等待用户确认。
 
@@ -34,8 +36,8 @@ Java 应为 21，Node 推荐 24；Docker 输出须包含 Client 和 Server。不
 ```powershell
 git clone https://github.com/Yuki-1109/Medical-RAG-System.git
 cd Medical-RAG-System
-# A1 分支推送后，在合并 main 前使用：
-git switch codex/a1-engineering-database
+# A2 分支推送后，在合并 main 前使用：
+git switch codex/a2-admin-authentication
 ```
 
 在仓库根目录运行：
@@ -51,7 +53,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Initialize-Databas
 - 使用命名数据卷 `medical-rag-pgdata` 保存数据库，监听 `127.0.0.1:5433`，避免与常见 5432 冲突。
 - 已有容器时启动现有容器，保留数据。不要删除数据卷；修改 `.env` 密码不会修改已有数据库密码。
 
-看到“PostgreSQL 已就绪”后继续。数据库扩展由后端首次启动时的 Flyway 迁移启用。A1 没有业务表，只会建立 Flyway 历史并启用真实 vector 扩展。
+看到“PostgreSQL 已就绪”后继续。数据库扩展由后端首次启动时的 Flyway V1 迁移启用；A2 的 V2 创建 users 表及单管理员约束，**不会预设账号或密码**。已有 A1 数据库可直接升级，不删除数据卷、不修改 V1、不重新初始化数据库。
 
 `.env` 只留在本机，不截图公开、不提交 Git。配置示例中的 DB_PASSWORD 为空是有意设计，应用没有默认密码。初始化脚本适合 A1 开发，数据库角色拥有创建扩展所需权限；正式发布时再收紧迁移/运行账号权限。
 
@@ -69,7 +71,7 @@ Flyway 对已安装的扩展执行 `CREATE EXTENSION IF NOT EXISTS vector`。缺
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Start-Backend.ps1
 ```
 
-第一次会下载 Maven 3.9.11 与依赖，耗时取决于网络。成功时看到 `Started MedicalRagApplication` 与端口 8080 的日志；Flyway 首次执行 V1，再次启动显示 schema 已是最新版本。
+第一次会下载 Maven 3.9.11 与依赖，耗时取决于网络。成功时看到 `Started MedicalRagApplication` 与端口 8080 的日志；Flyway 按顺序执行尚未执行的 V1/V2，再次启动显示 schema 已是最新版本。只有通过 A2 setup API 才会创建管理员，健康接口仍公开可用。
 
 直接访问 [后端健康接口](http://127.0.0.1:8080/api/health) 可查看 JSON。后端正常时状态为 `UP`；响应不包含密码、数据库连接字符串或用户名。8080 当前只提供 API，页面在前端 5173。
 
@@ -134,7 +136,7 @@ cd ..\backend
 .\mvnw.cmd verify -Pintegration-test
 ```
 
-普通后端 verify 执行单元测试并打包；**不代表数据库集成测试已执行**。带 `-Pintegration-test` 才会运行真实数据库健康、迁移幂等、扩展缺失和迁移记录缺失测试；没有 Docker 时该命令应失败，不把跳过当成功。
+普通后端 verify 执行单元测试并打包；**不代表数据库集成测试已执行**。带 `-Pintegration-test` 才会运行真实数据库健康、迁移幂等、扩展缺失、迁移记录缺失和 A2 认证测试；其中包含 8 路并发初始化、真实 HTTP Session/CSRF、退出失效和 jar 进程重启后登录。测试使用独立临时数据库，不创建/删除用户本机管理员。没有 Docker 时该命令应失败，不把跳过当成功。
 
 浏览器测试需要用户数据库与后端已启动：
 
@@ -154,11 +156,11 @@ Linux 可在 backend 执行 `./mvnw verify` / `./mvnw spring-boot:run`，前端�
 - Spring AI 官方说明 `1.1.x` 对应 Boot `3.5.x`；A1 不加载模型依赖，不需要 Key。后续 B 再选择同系列稳定补丁。
 - Maven 的数据库/Flyway/测试库版本由 Spring Boot BOM 统一管理，前端精确版本及 package-lock 固定。依赖及许可证说明见 [A1 依赖说明](docs/A1-依赖说明.md)。项目开源许可证将在公开发布前确认，本次不擅自替用户选择代码授权。
 
-代码提交保存在当前仓库 A1 分支。同步到 GitHub（不发布 Release）：
+代码提交保存在当前仓库独立 A2 分支，基于已推送的 A1 提交；原 A1 分支保留。A2 获准同步时可执行（不发布 Release）：
 
 ```powershell
 git status
-git push -u origin codex/a1-engineering-database
+git push -u origin codex/a2-admin-authentication
 ```
 
-分支推送后可在 GitHub 发起到 main 的 Pull Request，确认审查后再合并；另一台电脑 `git fetch origin` 后切换该分支即可。不要提交 `.env`、上传原件、数据库卷、私有日志或备份。本次完成 A1 后停止，A2 将实现本地管理员与后端认证。
+分支推送后可在 GitHub 发起 Pull Request，保留基于 A1 的依赖关系，确认审查后再合并；另一台电脑 `git fetch origin` 后切换该分支即可。不要提交 `.env`、上传原件、数据库卷、私有日志或备份。本次完成 A2 后停止，前端登录与初始化页面在用户确认 A3 后开发。

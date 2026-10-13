@@ -43,14 +43,14 @@ class HealthIT {
         assertThat(health.status()).isEqualTo("UP");
         assertThat(health.database().status()).isEqualTo("UP");
         assertThat(health.pgvector().version()).isEqualTo("0.8.2");
-        assertThat(health.migrations().version()).isEqualTo("1");
+        assertThat(health.migrations().version()).isEqualTo("2");
     }
 
     @Test
-    void unknownApiReturnsSafeChineseError() {
+    void unknownPrivateApiRequiresLoginBeforeRouting() {
         var response = http.getForEntity("/api/not-implemented", String.class);
-        assertThat(response.getStatusCode().value()).isEqualTo(404);
-        assertThat(response.getBody()).contains("HTTP_404", "接口不存在").doesNotContain("stackTrace", "jdbc:");
+        assertThat(response.getStatusCode().value()).isEqualTo(401);
+        assertThat(response.getBody()).contains("AUTHENTICATION_REQUIRED", "请先登录").doesNotContain("stackTrace", "jdbc:");
     }
 
     @Test
@@ -58,6 +58,7 @@ class HealthIT {
         assertThat(flyway.migrate().migrationsExecuted).isZero();
         assertThat(flyway.migrate().migrationsExecuted).isZero();
         assertThat(jdbc.queryForObject("SELECT count(*) FROM flyway_schema_history WHERE version = '1' AND success", Integer.class)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM flyway_schema_history WHERE version = '2' AND success", Integer.class)).isEqualTo(1);
     }
 
     @Test
