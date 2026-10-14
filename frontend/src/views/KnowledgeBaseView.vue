@@ -44,8 +44,10 @@ async function remove() {
       <el-card shadow="never"><p class="library-description">{{ context.current.description || '暂无简介' }}</p><p class="library-counts">文献 {{ context.current.documentCount }} · 图片 {{ context.current.imageCount }}</p><p class="library-meta">创建于 {{ new Date(context.current.createdAt).toLocaleString('zh-CN') }}<br />更新于 {{ new Date(context.current.updatedAt).toLocaleString('zh-CN') }}</p></el-card>
       <el-alert v-if="context.current.deletionPending" title="知识库删除未完成，资料不可访问，请再次删除以重试清理。" type="warning" :closable="false" show-icon />
       <p v-if="context.current.pendingCleanupCount" class="document-warning">另有 {{ context.current.pendingCleanupCount }} 条上传未完成或待清理记录。</p>
-      <router-link :to="`/app/knowledge-bases/${context.current.id}/documents`" class="primary-link">进入文献管理 →</router-link>
-      <el-button :disabled="context.current.deletionPending" @click="router.push(`/app/knowledge-bases/${context.current.id}/images`)">进入医学图片</el-button>
+      <div class="library-entry-actions">
+        <el-button :disabled="context.current.deletionPending" @click="router.push(`/app/knowledge-bases/${context.current.id}/documents`)">进入文献管理</el-button>
+        <el-button :disabled="context.current.deletionPending" @click="router.push(`/app/knowledge-bases/${context.current.id}/images`)">进入医学图片</el-button>
+      </div>
       <el-empty v-if="!context.current.documentCount && !context.current.imageCount && !context.current.pendingCleanupCount" description="当前知识库为空，可以上传 PDF 或 JPG/PNG 原件。" />
       <KnowledgeBaseForm :open="formOpen" :editing="context.current" :busy="saving" :error="formError" @close="formOpen = false" @save="save" />
     </template>

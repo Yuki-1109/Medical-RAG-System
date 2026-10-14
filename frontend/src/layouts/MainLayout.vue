@@ -11,7 +11,7 @@ const route = useRoute()
 const router = useRouter()
 const busy = ref(false)
 const error = ref('')
-const laterModules = ['片段编辑', 'AI 智能问答', '历史会话', '系统设置']
+const laterModules = ['片段编辑', 'AI 智能问答', '历史会话']
 const options = ref<KnowledgeBase[]>([])
 const availableOptions = computed(() => knowledgeBaseContext.current
   ? [knowledgeBaseContext.current, ...options.value.filter(base => base.id !== knowledgeBaseContext.current?.id)] : options.value)
@@ -74,6 +74,7 @@ onBeforeUnmount(() => {
         <router-link to="/app/knowledge-bases" :class="{ selected: route.path.startsWith('/app/knowledge-bases') }">我的知识库</router-link>
         <router-link :to="knowledgeBaseContext.current ? `/app/knowledge-bases/${knowledgeBaseContext.current.id}/documents` : '/app/knowledge-bases'" :class="{ selected: route.name === 'documents' || route.name === 'document-preview' }">文献管理</router-link>
         <router-link :to="knowledgeBaseContext.current ? `/app/knowledge-bases/${knowledgeBaseContext.current.id}/images` : '/app/knowledge-bases'" :class="{ selected: route.name === 'images' || route.name === 'image-detail' }">医学图片</router-link>
+        <router-link to="/app/settings/models" :class="{ selected: route.name === 'model-settings' }">系统设置</router-link>
         <p class="sidebar-label">后续模块</p>
         <span v-for="name in laterModules" :key="name" class="pending-navigation" aria-disabled="true">{{ name }}<small>待开发</small></span>
       </nav>

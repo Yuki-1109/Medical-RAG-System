@@ -27,7 +27,7 @@ import static org.assertj.core.api.Assertions.*;
             Path file=root.path().resolve(".storage-objects").resolve(key);Files.createDirectories(file.getParent());Files.write(file,pdf);
             jdbc.update("INSERT INTO documents (knowledge_base_id,original_filename,storage_key,file_size,sha256,page_count,lifecycle_status) VALUES (?,?,?,?,?,1,'ACTIVE')",base,"Synthetic English.pdf",key,pdf.length,hash);
             var document=jdbc.queryForMap("SELECT * FROM documents");var account=jdbc.queryForMap("SELECT * FROM users");var library=jdbc.queryForMap("SELECT * FROM knowledge_bases");
-            var upgraded=Flyway.configure().dataSource(source).cleanDisabled(true).load();assertThat(upgraded.migrate().migrationsExecuted).isEqualTo(1);assertThat(upgraded.info().current().getVersion().getVersion()).isEqualTo("5");
+            var upgraded=Flyway.configure().dataSource(source).target("5").cleanDisabled(true).load();assertThat(upgraded.migrate().migrationsExecuted).isEqualTo(1);assertThat(upgraded.info().current().getVersion().getVersion()).isEqualTo("5");
             assertThat(jdbc.queryForMap("SELECT * FROM documents")).isEqualTo(document);assertThat(jdbc.queryForMap("SELECT * FROM users")).isEqualTo(account);assertThat(jdbc.queryForMap("SELECT * FROM knowledge_bases")).isEqualTo(library);
             assertThat(Files.readAllBytes(file)).isEqualTo(pdf);assertThat(jdbc.queryForList("SELECT version,checksum FROM flyway_schema_history WHERE version<>'5' ORDER BY installed_rank")).isEqualTo(history);
             assertThat(upgraded.migrate().migrationsExecuted).isZero();assertThat(jdbc.queryForObject("SELECT count(*) FROM medical_images",Integer.class)).isZero();

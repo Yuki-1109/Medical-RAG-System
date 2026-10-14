@@ -8,7 +8,7 @@ function Import-MedicalRagEnvironment {
         throw '缺少 .env。请先运行 Initialize-Database.ps1，或复制 .env.example 并填写本机数据库配置。'
     }
     $requiredKeys = @('DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USERNAME', 'DB_PASSWORD', 'SERVER_PORT', 'FRONTEND_PORT')
-    $allowedKeys = $requiredKeys + @('SESSION_COOKIE_SECURE', 'APP_STORAGE_ROOT', 'APP_STORAGE_MAX_PDF_BYTES', 'APP_STORAGE_MAX_IMAGE_BYTES', 'APP_IMAGE_MAX_WIDTH', 'APP_IMAGE_MAX_HEIGHT', 'APP_IMAGE_MAX_PIXELS')
+    $allowedKeys = $requiredKeys + @('SESSION_COOKIE_SECURE', 'APP_STORAGE_ROOT', 'APP_STORAGE_MAX_PDF_BYTES', 'APP_STORAGE_MAX_IMAGE_BYTES', 'APP_IMAGE_MAX_WIDTH', 'APP_IMAGE_MAX_HEIGHT', 'APP_IMAGE_MAX_PIXELS', 'APP_MODEL_KEY_FILE', 'APP_MODEL_ALLOW_LOOPBACK_HTTP')
     foreach ($line in Get-Content -LiteralPath $configPath -Encoding UTF8) {
         $entry = $line.Trim().TrimStart([char]0xFEFF)
         if ($entry.Length -eq 0 -or $entry.StartsWith('#')) { continue }
@@ -27,6 +27,10 @@ function Import-MedicalRagEnvironment {
     $secureCookie = [Environment]::GetEnvironmentVariable('SESSION_COOKIE_SECURE', 'Process')
     if (-not [string]::IsNullOrEmpty($secureCookie) -and $secureCookie -notmatch '^(true|false)$') {
         throw 'SESSION_COOKIE_SECURE 只能填写 true 或 false；本机 HTTP 应使用 false。'
+    }
+    $localModel = [Environment]::GetEnvironmentVariable('APP_MODEL_ALLOW_LOOPBACK_HTTP', 'Process')
+    if (-not [string]::IsNullOrEmpty($localModel) -and $localModel -notmatch '^(true|false)$') {
+        throw 'APP_MODEL_ALLOW_LOOPBACK_HTTP 只能填写 true 或 false。'
     }
     foreach ($key in @('APP_STORAGE_MAX_PDF_BYTES', 'APP_STORAGE_MAX_IMAGE_BYTES', 'APP_IMAGE_MAX_WIDTH', 'APP_IMAGE_MAX_HEIGHT', 'APP_IMAGE_MAX_PIXELS')) {
         $limitValue = [Environment]::GetEnvironmentVariable($key, 'Process')

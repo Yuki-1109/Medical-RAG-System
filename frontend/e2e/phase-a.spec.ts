@@ -25,7 +25,7 @@ test('A8 fresh installation and complete PDF/JPG/PNG lifecycle across actual dat
     }
     await login(page)
     console.log('A8：首次部署/原测试账号登录完成')
-    const health = await page.request.get('/api/health').then(response => response.json()); expect(health.migrations.version).toBe('5')
+    const health = await page.request.get('/api/health').then(response => response.json()); expect(health.migrations.version).toBe('6')
     const profile = await page.request.get('/api/auth/me').then(response => response.json()); expect(Object.keys(profile).sort()).toEqual(['createdAt', 'id', 'username'])
     const k1Response = await page.request.post('/api/knowledge-bases', { headers: { 'X-CSRF-TOKEN': await token(page) }, data: { name: 'A8 综合 K1', description: 'initial' } }); expect(k1Response.status()).toBe(201)
     const k1 = (await k1Response.json()).id as string; owned.add(k1)

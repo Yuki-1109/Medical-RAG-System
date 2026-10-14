@@ -120,7 +120,7 @@ export async function getCsrf(force = false): Promise<string> {
   return csrfPending
 }
 
-export async function mutate<T>(path: string, body?: string, contentType = 'application/json', notifyUnauthorized = true, method: 'POST' | 'PATCH' | 'DELETE' = 'POST'): Promise<T> {
+export async function mutate<T>(path: string, body?: string, contentType = 'application/json', notifyUnauthorized = true, method: 'POST' | 'PUT' | 'PATCH' | 'DELETE' = 'POST'): Promise<T> {
   async function send() {
     return request<T>(path, {
       method, body, notifyUnauthorized,

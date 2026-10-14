@@ -2,11 +2,11 @@
 
 医疗文献与医学图片知识库 RAG 系统，本科毕业设计，面向 Windows 本地部署。
 
-**当前交付：A7 图片管理 + A8 阶段 A 综合验收。** 登录、多知识库、PDF原文页码预览、JPG/JPEG/PNG原图管理、人工类型/分期/程度/关键词/备注、原件下载校验、确认删除和可重试联合清理均为真实功能。A7增量V5保留原A1～A6账号、资料和迁移；人工标签不改原件、不做医学识图。
+**当前交付：B1 模型 API 安全配置 + 知识库两个入口按钮统一。** 聊天与 Embedding 独立配置、AES-256-GCM密钥保存、主密钥独立私有文件、后端真实连接测试及系统设置页面已实现；A1～A8登录、知识库、PDF与图片管理功能保留。
 
-A1～A6 Windows核心验收已由用户确认，A6 PDF原件与下载SHA-256一致已确认；A7/A8 Windows综合验收待用户实机执行。一次性命令及完整网页操作见 **[A8 Windows综合验收](docs/A8-阶段A综合验收.md)**；[A7实现及运行](docs/A7-医学图片管理运行与验收.md)、[A7测试](docs/A7-验证记录.md)、[阶段A最终记录](docs/A阶段-最终验收记录.md)。保留原mianmian、.env、卷、PDF和原件目录，不需重新初始化。
+A1～A8已由用户确认Windows验收，历史[A8记录](docs/A阶段-最终验收记录.md)保留当时的测试状态与偶发失败。B1安全同步、主密钥备份、V5→V6增量迁移、真实供应商联调及Windows网页/命令见 **[B1 Windows验收](docs/B1-模型API安全配置与Windows验收.md)**，云端实际结果见[B1验证记录](docs/B1-验证记录.md)。原mianmian、.env、卷和原件目录不重新初始化。
 
-阶段A完成不等于整个RAG MVP完成：模型配置、文字提取/Chunk/Embedding/检索/问答、三级疾病分类、图层和双视图、历史会话、Compose/Release尚未实现。当前不需要模型API Key，等待Windows验收后再由用户明确授权B1。Linux最终回归：后端205（72单元/133集成）、前端41单元及29浏览器通过；Windows新增阶段待验收，完整生产专项结果见阶段A记录。
+B1不代表整个RAG完成：文字提取/Chunk、批量Embedding、索引、检索/问答、三级疾病分类、图层/双视图、会话和Compose/Release仍未开发。模型配置不自动调用；真实供应商Key仅由用户在本机网页录入，不发送给Codex。完成本次交付后等待Windows验收，不进入B2。
 
 需求依据：[完整需求规格说明 v1.0](医疗%20RAG%20系统｜完整需求规格说明%20v1.0.md)、[分阶段开发计划](docs/分阶段开发计划-v1.0.md)。后续按小任务开发，每次验收后等待用户确认。
 
@@ -38,11 +38,11 @@ Java 应为 21，Node 推荐 24；Docker 输出须包含 Client 和 Server。不
 ```powershell
 git clone https://github.com/Yuki-1109/Medical-RAG-System.git
 cd Medical-RAG-System
-# 合并 main 前使用已推送的 A7/A8 分支：
-git switch codex/a7-a8-phase-a-acceptance
+# 使用已推送的 B1 独立分支：
+git switch codex/b1-model-configuration
 ```
 
-已有数据库升级 A7/A8 只需启动原容器 `docker start medical-rag-postgres`，启动后端增量执行 V5（仍为V3的数据库会先执行V4），保留原 .env；在 frontend 执行 `npm.cmd ci` 安装新增预览依赖。详细 fetch/switch 命令见 A8 文档。以下初始化命令用于第一次安装新环境；已有管理员不重新创建。
+已有数据库升级 B1 只需启动原容器 `docker start medical-rag-postgres`，启动后端增量执行 V6（更早版本会顺序补齐迁移），保留原 .env；在 frontend 执行 `npm.cmd ci` 安装新增预览依赖。详细 fetch/switch 命令见 B1 文档。以下初始化命令用于第一次安装新环境；已有管理员不重新创建。
 
 在仓库根目录运行：
 
@@ -75,7 +75,7 @@ Flyway 对已安装的扩展执行 `CREATE EXTENSION IF NOT EXISTS vector`。缺
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Start-Backend.ps1
 ```
 
-第一次会下载 Maven 3.9.11 与依赖，耗时取决于网络。成功时看到 `Started MedicalRagApplication` 与端口 8080；Flyway 按顺序执行尚未完成的 V1～V5，已有 V4 只增量执行 V5（V3 会先执行 V4），再次启动不重复迁移。只有 A2 setup API 会创建管理员，健康接口仍公开可用。
+第一次会下载 Maven 3.9.11 与依赖，耗时取决于网络。成功时看到 `Started MedicalRagApplication` 与端口 8080；Flyway 按顺序执行尚未完成的 V1～V6，已有 V5 只增量执行 V6，再次启动不重复迁移。只有 A2 setup API 会创建管理员，健康接口仍公开可用。
 
 直接访问 [后端健康接口](http://127.0.0.1:8080/api/health) 可查看 JSON。后端正常时状态为 `UP`；响应不包含密码、数据库连接字符串或用户名。8080 当前只提供 API，页面在前端 5173。
 
@@ -171,6 +171,6 @@ Linux 可在 backend 执行 `./mvnw verify` / `./mvnw spring-boot:run`，前端�
 - Spring AI 官方说明 `1.1.x` 对应 Boot `3.5.x`；A1 不加载模型依赖，不需要 Key。后续 B 再选择同系列稳定补丁。
 - Maven 的数据库/Flyway/测试库版本由 Spring Boot BOM 统一管理，前端精确版本及 package-lock 固定。依赖及许可证说明见 [A1 依赖说明](docs/A1-依赖说明.md)。项目开源许可证将在公开发布前确认，本次不擅自替用户选择代码授权。
 
-代码保存在独立 `codex/a7-a8-phase-a-acceptance` 分支，基于已验收A6 `7567c0391b8d6844364f9f0759896ce3a82d1d0c`；正常历史提交保留。本次已授权实现A7/A8、测试、提交及推送，仅推开发分支，不合并main、不发布Release。Windows显式fetch/switch/ff-only见[A8一次性验收](docs/A8-阶段A综合验收.md)。
+代码保存在独立 `codex/b1-model-configuration`，准确基于已验收 A7/A8 `c5fb58da2ac50c4ae652f45e8ad2d8457f80a6eb`，普通历史/普通推送，不合并 main、不发布Release。获取代码和核对最终 SHA 见[B1验收文档](docs/B1-模型API安全配置与Windows验收.md)。
 
-不要提交.env、个人原件、数据库、日志或备份。完成后停止，Windows综合验收确认且另行明确授权后才开始B1模型安全配置。
+不要提交.env、API Key、主密钥、个人原件、数据库、日志或备份。B1完成后停止，等待Windows验收及下一任务明确授权。

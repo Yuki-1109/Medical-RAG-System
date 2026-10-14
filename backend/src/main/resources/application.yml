@@ -42,3 +42,12 @@ app:
     max-width: ${APP_IMAGE_MAX_WIDTH:8192}
     max-height: ${APP_IMAGE_MAX_HEIGHT:8192}
     max-pixels: ${APP_IMAGE_MAX_PIXELS:16000000}
+  models:
+    key-file: ${APP_MODEL_KEY_FILE:secrets/model-master.key}
+    allow-loopback-http: ${APP_MODEL_ALLOW_LOOPBACK_HTTP:false}
+    timeout-millis: 15000
+# Never enable third-party HTTP wire/header logs: these requests carry API credentials.
+logging:
+  level:
+    org.apache.hc.client5.http.wire: OFF
+    org.apache.hc.client5.http.headers: OFF

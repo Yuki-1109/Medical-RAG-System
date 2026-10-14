@@ -30,6 +30,7 @@ export const router = createRouter({
       { path: 'knowledge-bases/:id/documents/:documentId', name: 'document-preview', component: () => import('./views/DocumentPreviewView.vue'), meta: { title: 'PDF 原文预览' } },
       { path: 'knowledge-bases/:id/images', name: 'images', component: () => import('./views/ImagesView.vue'), meta: { title: '医学图片' } },
       { path: 'knowledge-bases/:id/images/:imageId', name: 'image-detail', component: () => import('./views/ImageDetailView.vue'), meta: { title: '图片原图与人工信息' } },
+      { path: 'settings/models', name: 'model-settings', component: () => import('./views/ModelSettingsView.vue'), meta: { title: '系统设置' } },
       { path: ':pathMatch(.*)*', component: NotFoundView },
     ] },
     { path: '/:pathMatch(.*)*', component: NotFoundView },

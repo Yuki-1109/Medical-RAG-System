@@ -2,7 +2,7 @@ import { validKnowledgeBaseId } from '../api/knowledgeBases'
 
 export function safeDestination(value: unknown): string {
   if (typeof value !== 'string') return '/app'
-  if (['/app', '/app/health', '/app/knowledge-bases'].includes(value)) return value
+  if (['/app', '/app/health', '/app/knowledge-bases', '/app/settings/models'].includes(value)) return value
   const match = /^\/app\/knowledge-bases\/([^/]+)$/.exec(value)
   if (match && validKnowledgeBaseId(match[1])) return value
   const images = /^\/app\/knowledge-bases\/([^/]+)\/images(?:\/([^/?]+))?$/.exec(value)

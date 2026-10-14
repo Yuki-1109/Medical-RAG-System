@@ -174,6 +174,6 @@ test.describe.serial('A4 knowledge bases with real isolated PostgreSQL', () => {
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
       await page.getByRole('button', { name: '取消', exact: true }).click()
     }
-    await expect(page.locator('.pending-navigation')).toHaveCount(4)
+    await expect(page.locator('.pending-navigation')).toHaveCount(3)
   })
 })

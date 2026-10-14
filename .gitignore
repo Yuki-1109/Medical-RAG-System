@@ -4,6 +4,7 @@
 !.env.example
 *.pem
 *.key
+# B1 private master-key directories (default secrets/model-master.key)
 secrets/
 data/
 uploads/

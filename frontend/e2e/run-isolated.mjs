@@ -95,7 +95,7 @@ try {
     // Test environment only: ignore inherited alternate profiles/JVM overrides that
     // could redirect Spring to a user's database. Password stays in the child env.
     for (const key of ['SPRING_APPLICATION_JSON', 'SPRING_CONFIG_LOCATION', 'SPRING_CONFIG_ADDITIONAL_LOCATION', 'SPRING_PROFILES_ACTIVE', 'JAVA_TOOL_OPTIONS', 'JDK_JAVA_OPTIONS', '_JAVA_OPTIONS']) delete childEnvironment[key]
-    backend = spawn(java, ['-jar', runtimeJar, `--spring.datasource.url=${environment.SPRING_DATASOURCE_URL}`, '--spring.datasource.username=medical_rag_e2e', '--server.address=127.0.0.1', `--server.port=${backendPort}`, `--app.storage.root=${storageRoot}`, '--app.storage.max-pdf-bytes=52428800', '--app.storage.max-image-bytes=20971520', '--app.image.max-width=8192', '--app.image.max-height=8192', '--app.image.max-pixels=16000000'], { cwd: join(repository, 'backend'), env: childEnvironment, stdio: ['ignore', log, log] })
+    backend = spawn(java, ['-jar', runtimeJar, `--spring.datasource.url=${environment.SPRING_DATASOURCE_URL}`, '--spring.datasource.username=medical_rag_e2e', '--server.address=127.0.0.1', `--server.port=${backendPort}`, `--app.storage.root=${storageRoot}`, `--app.models.key-file=${join(fixturesRoot, 'secrets', 'model-master.key')}`, '--app.models.allow-loopback-http=true', '--app.storage.max-pdf-bytes=52428800', '--app.storage.max-image-bytes=20971520', '--app.image.max-width=8192', '--app.image.max-height=8192', '--app.image.max-pixels=16000000'], { cwd: join(repository, 'backend'), env: childEnvironment, stdio: ['ignore', log, log] })
     closeSync(log)
     backend.on('error', () => { interrupted = true })
     for (let attempt = 0; attempt < 100 && !interrupted; attempt++) {

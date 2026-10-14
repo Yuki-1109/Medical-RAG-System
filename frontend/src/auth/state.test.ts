@@ -51,3 +51,8 @@ it('allows only known private return paths', () => {
   for (const target of ['https://example.com', '//example.com', '/setup', ['/app']]) expect(safeDestination(target)).toBe('/app')
   expect(safeDestination('/app/health')).toBe('/app/health')
 })
+
+it('restores only the exact settings route after login', () => {
+  expect(safeDestination('/app/settings/models')).toBe('/app/settings/models')
+  for (const path of ['/app/settings/models?redirect=https://example.com', '/app/settings/models/../../login', '//example.com/app/settings/models']) expect(safeDestination(path)).toBe('/app')
+})
